@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VIP Party Pods — Book Your Pod</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #07060F; font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; color: #F0ECF8; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1a1030; } ::-webkit-scrollbar-thumb { background: #7C3AED; border-radius: 3px; }
+
+  /* HEADER */
+  .header { width: 100%; padding: 22px 20px 18px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); background: rgba(10,8,22,0.97); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px); }
+  .header-logo { font-size: 13px; font-weight: 700; letter-spacing: 0.25em; color: #A78BFA; text-transform: uppercase; margin-bottom: 3px; }
+  .header-sub { font-size: 11px; letter-spacing: 0.18em; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+  .owner-link { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 10px; color: rgba(255,255,255,0.1); cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase; border: none; background: none; }
+
+  /* STEPPER */
+  .stepper-wrap { max-width: 720px; margin: 0 auto; padding: 28px 20px 0; }
+  .stepper { display: flex; align-items: center; }
+  .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; transition: all 0.3s; border: 2px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.3); }
+  .step-dot.active { border-color: #A78BFA; background: rgba(124,58,237,0.2); color: #A78BFA; }
+  .step-dot.done { border-color: #7C3AED; background: #7C3AED; color: #fff; }
+  .step-line { flex: 1; height: 2px; background: rgba(255,255,255,0.08); margin: 0 4px; transition: background 0.3s; }
+  .step-line.done { background: #7C3AED; }
+  .step-labels { display: flex; margin-top: 8px; }
+  .step-label { flex: 1; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25); transition: color 0.3s; }
+  .step-label.active { color: #E9D5FF; }
+  .step-label.done { color: #A78BFA; }
+
+  /* PAGE */
+  .page { max-width: 760px; margin: 0 auto; padding: 36px 20px 80px; }
+  .section-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .section-sub { font-size: 14px; color: rgba(255,255,255,0.45); margin-bottom: 28px; line-height: 1.6; }
+
+  /* POLICY */
+  .policy-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; height: 340px; overflow-y: auto; font-size: 13px; line-height: 1.8; color: rgba(255,255,255,0.6); white-space: pre-wrap; margin-bottom: 20px; }
+  .check-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 28px; cursor: pointer; }
+  .checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.2); background: transparent; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; transition: all 0.2s; margin-top: 1px; }
+  .checkbox.checked { border-color: #7C3AED; background: #7C3AED; }
+  .checkbox .check-icon { display: none; color: #fff; font-size: 13px; }
+  .checkbox.checked .check-icon { display: block; }
+  .check-label { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.6; }
+
+  /* BUTTONS */
+  .btn { padding: 14px 36px; border-radius: 10px; border: none; font-weight: 700; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: linear-gradient(135deg, #7C3AED, #A855F7); color: #fff; box-shadow: 0 4px 24px rgba(124,58,237,0.35); }
+  .btn-primary:hover { box-shadow: 0 6px 32px rgba(124,58,237,0.5); transform: translateY(-1px); }
+  .btn-disabled { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.25); cursor: not-allowed; }
+  .btn-outline { background: transparent; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15); }
+  .btn-pay { width: 100%; padding: 18px; border-radius: 12px; border: none; font-weight: 800; font-size: 16px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; background: linear-gradient(135deg, #7C3AED, #A855F7); color: #fff; box-shadow: 0 4px 32px rgba(124,58,237,0.45); margin-bottom: 12px; transition: all 0.2s; }
+  .btn-pay:hover { box-shadow: 0 6px 40px rgba(124,58,237,0.6); transform: translateY(-1px); }
+  .btn-row { display: flex; justify-content: space-between; margin-top: 24px; align-items: center; }
+  .btn-row-right { display: flex; justify-content: flex-end; margin-top: 24px; }
+
+  /* PACKAGES */
+  .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 8px; }
+  .package-card { border-radius: 14px; padding: 20px; cursor: pointer; transition: all 0.2s; border: 2px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); }
+  .package-emoji { font-size: 28px; margin-bottom: 8px; display: block; }
+  .package-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+  .package-sub { font-size: 11px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 10px; }
+  .package-desc { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.6; margin-bottom: 12px; }
+  .includes-label { font-size: 10px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+  .include-item { font-size: 12px; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .duration-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .duration-btn { padding: 7px 14px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.15); background: transparent; color: rgba(255,255,255,0.45); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+
+  /* CALENDAR */
+  .calendar { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .cal-title { font-size: 15px; font-weight: 700; }
+  .cal-nav { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-day-label { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); padding-bottom: 8px; }
+  .cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; color: rgba(255,255,255,0.75); transition: all 0.15s; }
+  .cal-day:hover:not(.past):not(.booked) { background: rgba(124,58,237,0.15); }
+  .cal-day.today { border-color: rgba(167,139,250,0.4); }
+  .cal-day.selected { background: linear-gradient(135deg, #7C3AED, #A855F7); color: #fff; font-weight: 700; border-color: transparent; }
+  .cal-day.past { color: rgba(255,255,255,0.12); cursor: default; }
+  .cal-day.booked { color: rgba(239,68,68,0.45); text-decoration: line-through; cursor: default; }
+  .cal-empty { aspect-ratio: 1; }
+
+  /* TIMES */
+  .time-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+  .time-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 20px; }
+  .time-btn { padding: 10px 8px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.55); font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
+  .time-btn:hover { border-color: rgba(124,58,237,0.4); }
+  .time-btn.selected { border-color: #7C3AED; background: rgba(124,58,237,0.2); color: #E9D5FF; }
+  .time-end { font-size: 10px; opacity: 0.6; margin-top: 2px; }
+
+  /* FORM INPUTS */
+  .input-group { margin-bottom: 16px; }
+  .input-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 6px; display: block; }
+  .input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 14px 16px; color: #F0ECF8; font-size: 14px; outline: none; transition: border-color 0.2s; font-family: inherit; }
+  .input:focus { border-color: rgba(124,58,237,0.5); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .three-col { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+
+  /* SUMMARY */
+  .summary-box { background: rgba(124,58,237,0.08); border: 1px solid rgba(124,58,237,0.2); border-radius: 14px; padding: 20px 24px; margin-bottom: 20px; }
+  .summary-header { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 14px; }
+  .summary-row { display: flex; justify-content: space-between; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+  .summary-row span:last-child { color: #F0ECF8; font-weight: 500; }
+  .summary-total { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 4px; font-size: 16px; font-weight: 700; }
+  .summary-total span:last-child { color: #A78BFA; }
+
+  /* NOTICE */
+  .notice { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: rgba(245,158,11,0.85); line-height: 1.6; margin-bottom: 20px; display: flex; gap: 10px; align-items: flex-start; }
+
+  /* FOOTER */
+  .footer { text-align: center; margin-top: 20px; font-size: 11px; color: rgba(255,255,255,0.2); line-height: 1.8; }
+
+  /* ADMIN */
+  .admin-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .admin-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #A78BFA; }
+  .admin-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .blocked-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .blocked-tag { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 8px; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+  .blocked-tag-remove { cursor: pointer; color: #F87171; font-weight: 700; background: none; border: none; font-size: 14px; }
+  .btn-block { padding: 14px 20px; border-radius: 10px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.15); color: #F87171; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .btn-cancel { padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.1); color: #F87171; font-weight: 700; font-size: 12px; cursor: pointer; }
+  select.input { cursor: pointer; }
+  .booking-item { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .booking-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .booking-ref { color: #A78BFA; font-size: 12px; margin-left: 8px; }
+  .booking-detail { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+  .booking-date { font-size: 13px; color: #E9D5FF; margin-top: 4px; font-weight: 600; }
+  .damage-note { margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.7; }
+
+  /* HIDDEN */
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr 1fr; }
+    .package-grid { grid-template-columns: 1fr; }
+    .admin-grid { grid-template-columns: 1fr; }
+    .btn { padding: 12px 20px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div style="position:relative;">
+    <div class="header-logo">VIP Party Pods</div>
+    <div class="header-sub">Reserve Your Pod</div>
+    <button class="owner-link" onclick="showView('admin-login')">OWNER</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     BOOKING FLOW
+════════════════════════════════════════════════════ -->
+<div id="view-booking">
+  <!-- Stepper -->
+  <div class="stepper-wrap">
+    <div class="stepper" id="stepper"></div>
+    <div class="step-labels" id="step-labels"></div>
+  </div>
+
+  <div class="page">
+
+    <!-- STEP 0: POLICY -->
+    <div id="step-0">
+      <div class="section-title">Rental Agreement</div>
+      <div class="section-sub">Please read our full rental policy and check the box to agree before continuing.</div>
+      <div class="policy-box" id="policy-text"></div>
+      <div class="check-row" onclick="toggleAgreed()">
+        <div class="checkbox" id="checkbox">
+          <span class="check-icon">✓</span>
+        </div>
+        <div class="check-label">I have read and agree to the VIP Party Pods Rental Agreement in full, including all equipment use, damage, liability, weather, and cancellation terms. I understand that by completing this booking, VIP Party Pods LLC is authorized to charge my card on file for any damage, missing items, or excessive cleaning fees found upon inspection after my event.</div>
+      </div>
+      <div class="btn-row-right">
+        <button class="btn btn-disabled" id="btn-policy-next" onclick="goToStep(1)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 1: PACKAGES -->
+    <div id="step-1" class="hidden">
+      <div class="section-title">Choose Your Experience</div>
+      <div class="section-sub">Select a package and your preferred rental duration.</div>
+      <div class="package-grid" id="package-grid"></div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="goToStep(0)">← Back</button>
+        <button class="btn btn-disabled" id="btn-pkg-next" onclick="goToStep(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: DATE & TIME -->
+    <div id="step-2" class="hidden">
+      <div class="section-title">Pick Your Date & Time</div>
+      <div class="section-sub" id="datetime-sub"></div>
+      <div class="calendar">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="changeMonth(-1)">&#8249;</button>
+          <div class="cal-title" id="cal-title"></div>
+          <button class="cal-nav" onclick="changeMonth(1)">&#8250;</button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+      <div id="time-section" class="hidden">
+        <div class="time-label" id="time-label"></div>
+        <div class="time-grid" id="time-grid"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="goToStep(1)">← Back</button>
+        <button class="btn btn-disabled" id="btn-dt-next" onclick="goToStep(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: CUSTOMER INFO -->
+    <div id="step-3" class="hidden">
+      <div class="section-title">Your Information</div>
+      <div class="section-sub">We'll use this to confirm your booking and coordinate setup details.</div>
+      <div class="two-col">
+        <div class="input-group"><label class="input-label">First Name</label><input class="input" id="firstName" placeholder="First Name" oninput="checkInfoForm()"/></div>
+        <div class="input-group"><label class="input-label">Last Name</label><input class="input" id="lastName" placeholder="Last Name" oninput="checkInfoForm()"/></div>
+      </div>
+      <div class="two-col">
+        <div class="input-group"><label class="input-label">Email Address</label><input class="input" id="email" type="email" placeholder="email@example.com" oninput="checkInfoForm()"/></div>
+        <div class="input-group"><label class="input-label">Phone Number</label><input class="input" id="phone" type="tel" placeholder="(423) 555-0000" oninput="checkInfoForm()"/></div>
+      </div>
+      <div class="input-group"><label class="input-label">Party Address</label><input class="input" id="address" placeholder="Street Address" oninput="checkInfoForm()"/></div>
+      <div class="three-col">
+        <div class="input-group"><label class="input-label">City</label><input class="input" id="city" placeholder="City" oninput="checkInfoForm()"/></div>
+        <div class="input-group"><label class="input-label">State</label><input class="input" id="state" placeholder="TN" oninput="checkInfoForm()"/></div>
+        <div class="input-group"><label class="input-label">ZIP</label><input class="input" id="zip" placeholder="00000" oninput="checkInfoForm()"/></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
+        <button class="btn btn-disabled" id="btn-info-next" onclick="goToStep(4)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: CONFIRM & PAY -->
+    <div id="step-4" class="hidden">
+      <div class="section-title">Confirm & Pay</div>
+      <div class="section-sub">Review your booking then click below to pay securely through Stripe.</div>
+      <div class="summary-box">
+        <div class="summary-header">Your Booking</div>
+        <div class="summary-row"><span>Package</span><span id="sum-pkg"></span></div>
+        <div class="summary-row" id="sum-nerf-row" style="display:none;"><span>Battle Style</span><span id="sum-nerf"></span></div>
+        <div class="summary-row"><span>Duration</span><span id="sum-dur"></span></div>
+        <div class="summary-row"><span>Date</span><span id="sum-date"></span></div>
+        <div class="summary-row"><span>Start Time</span><span id="sum-time"></span></div>
+        <div class="summary-row" id="sum-end-row"><span>End Time</span><span id="sum-end"></span></div>
+        <div class="summary-row"><span>Name</span><span id="sum-name"></span></div>
+        <div class="summary-row"><span>Email</span><span id="sum-email"></span></div>
+        <div class="summary-row"><span>Phone</span><span id="sum-phone"></span></div>
+        <div class="summary-row"><span>Party Address</span><span id="sum-address"></span></div>
+        <div class="summary-total"><span>Total Due Now</span><span id="sum-total"></span></div>
+      </div>
+      <div class="notice">
+        <span>ℹ️</span>
+        <span>You'll be taken to our secure Stripe payment page. Once payment is complete your date is locked in. Your card is saved on file — VIP Party Pods LLC is authorized to charge it for any damages found after your event.</span>
+      </div>
+      <button class="btn-pay" onclick="handlePayment()">🔒 Pay Securely with Stripe →</button>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="goToStep(3)">← Back</button>
+      </div>
+      <div class="footer">🔒 Powered by Stripe · VIP Party Pods LLC<br/>(423) 255-8034 · Vippartypods@gmail.com</div>
+    </div>
+
+    <!-- THANK YOU PAGE -->
+    <div id="step-thanks" class="hidden">
+      <div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:72px;margin-bottom:20px;">🎉</div>
+        <div style="font-size:28px;font-weight:800;margin-bottom:10px;background:linear-gradient(135deg,#A78BFA,#E9D5FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">You're on the VIP List!</div>
+        <div style="font-size:15px;color:rgba(255,255,255,0.5);margin-bottom:32px;line-height:1.7;">
+          Complete your payment on the Stripe page that just opened.<br/>Once payment is confirmed your date is officially locked in.
+        </div>
+
+        <!-- Booking recap -->
+        <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:left;max-width:480px;margin-left:auto;margin-right:auto;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:14px;">Your Booking Details</div>
+          <div class="summary-row"><span>Package</span><span id="ty-pkg"></span></div>
+          <div class="summary-row" id="ty-nerf-row" style="display:none;"><span>Battle Style</span><span id="ty-nerf"></span></div>
+          <div class="summary-row"><span>Duration</span><span id="ty-dur"></span></div>
+          <div class="summary-row"><span>Date</span><span id="ty-date"></span></div>
+          <div class="summary-row"><span>Start Time</span><span id="ty-time"></span></div>
+          <div class="summary-row" id="ty-end-row"><span>End Time</span><span id="ty-end"></span></div>
+          <div class="summary-row"><span>Booking Ref</span><span id="ty-ref" style="color:#A78BFA;font-weight:700;"></span></div>
+          <div class="summary-total"><span>Total</span><span id="ty-total"></span></div>
+        </div>
+
+        <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:14px 18px;font-size:12px;color:rgba(245,158,11,0.85);line-height:1.7;margin-bottom:28px;max-width:480px;margin-left:auto;margin-right:auto;">
+          ℹ️ Our team will reach out within 24 hours to confirm setup details for your event. Questions? Call or text us at <strong>(423) 255-8034</strong>.
+        </div>
+
+        <a href="https://www.vippartypods.com" style="display:inline-block;padding:14px 36px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;box-shadow:0 4px 24px rgba(124,58,237,0.35);">
+          ← Back to VIP Party Pods
+        </a>
+
+        <div class="footer" style="margin-top:32px;">
+          🔒 Powered by Stripe · VIP Party Pods LLC<br/>(423) 255-8034 · Vippartypods@gmail.com
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+</div><!-- /view-booking -->
+
+<!-- ═══════════════════════════════════════════════════
+     ADMIN LOGIN
+════════════════════════════════════════════════════ -->
+<div id="view-admin-login" class="hidden" style="display:flex;justify-content:center;align-items:center;min-height:80vh;">
+  <div style="max-width:360px;width:100%;padding:32px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div class="header-logo" style="font-size:15px;">VIP Party Pods</div>
+      <div style="font-size:18px;font-weight:700;margin-top:12px;">Owner Dashboard</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:6px;">Enter your admin password</div>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Password</label>
+      <input class="input" type="password" id="admin-pw" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    </div>
+    <div id="admin-error" class="hidden" style="color:#F87171;font-size:12px;margin-bottom:12px;text-align:center;">Incorrect password.</div>
+    <button class="btn btn-primary" style="width:100%" onclick="adminLogin()">Sign In</button>
+    <div style="text-align:center;margin-top:16px;">
+      <span style="font-size:12px;color:rgba(255,255,255,0.3);cursor:pointer;" onclick="showView('booking')">← Back to Booking</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     ADMIN DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="view-admin" class="hidden">
+  <div class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+      <div class="section-title">Manage Availability & Bookings</div>
+      <button class="btn btn-outline" style="padding:10px 20px;font-size:12px;" onclick="adminLogout()">← Exit</button>
+    </div>
+
+    <!-- Block dates -->
+    <div class="admin-card">
+      <div class="admin-title">🚫 Block a Date (Mark Unavailable)</div>
+      <div class="admin-grid">
+        <div>
+          <label class="input-label">Package</label>
+          <select class="input" id="block-pkg"></select>
+        </div>
+        <div>
+          <label class="input-label">Date to Block</label>
+          <input class="input" type="date" id="block-date"/>
+        </div>
+        <button class="btn-block" onclick="blockDate()">Block Date</button>
+      </div>
+      <div id="blocked-list"></div>
+    </div>
+
+    <!-- Bookings list -->
+    <div class="admin-title">📋 All Bookings</div>
+    <div id="bookings-list"></div>
+    <div class="damage-note">
+      💳 To charge a customer for damages: log into <strong>stripe.com</strong> → Customers → find by name or email → Charge customer. Stripe will send them a receipt automatically.
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = "vipAdmin2026";
+
+const STRIPE_LINKS = {
+  "vip-party-pod|4 Hours":    "https://buy.stripe.com/14A4gB1mLdoe2Se6jZ3ZK06",
+  "vip-party-pod|6 Hours":    "https://buy.stripe.com/cNi00ld5t6ZQ64qaAf3ZK05",
+  "vip-party-pod|All Night":  "https://buy.stripe.com/8x23cx8Pd0Bs1OafUz3ZK04",
+  "battle-bash-pod|4 Hours":  "https://buy.stripe.com/14AbJ33uTgAq50m7o33ZK03",
+  "battle-bash-pod|6 Hours":  "https://buy.stripe.com/5kQ28t0iH0BsgJ46jZ3ZK02",
+  "glow-up-pod|6 Hours":      "https://buy.stripe.com/8x200l6H5ckaboKaAf3ZK01",
+  "all-nighter-pod|All Night":"https://buy.stripe.com/8x214pc1pckaakG23J3ZK00",
+};
+
+const PACKAGES = [
+  { id:"vip-party-pod", name:"VIP Party Pod", subtitle:"The Original", emoji:"🎉", description:"The perfect blank canvas. Our signature inflatable tent delivers the space and the wow factor — you bring the vision, we bring the vibe.", includes:["30×20×14 Inflatable Tent","We set up and take down","Extension Cord Included"], options:[{label:"4 Hours",price:350},{label:"6 Hours",price:425},{label:"All Night",price:500}], color:"#7B2FBE" },
+  { id:"battle-bash-pod", name:"Battle Bash Pod", subtitle:"Nerf / Laser Tag", emoji:"⚔️", description:"Gear up for the ultimate backyard war. Battle tent, cover barriers, and a full arsenal of Nerf OR Laser Tag gear — high-stakes fun for all ages.", includes:["30×20×14 Battle Tent","Nerf OR Laser Tag Weapons & Ammo","Barriers for Cover","We set up and take down"], options:[{label:"4 Hours",price:450},{label:"6 Hours",price:525}], color:"#E8372A" },
+  { id:"glow-up-pod", name:"Glow-Up Pod", subtitle:"Ultimate Nightclub Experience", emoji:"🌟", description:"Transform your backyard into an exclusive nightclub. Light-up tables & chairs, party lights, and a high-powered Bluetooth speaker.", includes:["30×20×14 Inflatable Tent","Light-Up Tables & Chairs","Party Lights","High-Powered Bluetooth Speaker","We set up and take down"], options:[{label:"6 Hours",price:600}], color:"#0EA5E9" },
+  { id:"all-nighter-pod", name:"All-Nighter Pod", subtitle:"Until The Sun Comes Up", emoji:"🌙", description:"Everything in the Glow-Up Package, but the night never ends. All night access — the night is yours to command.", includes:["30×20×14 Inflatable Tent","Light-Up Tables & Chairs","Party Lights","High-Powered Bluetooth Speaker","All Night Access","We set up and take down"], options:[{label:"All Night",price:750}], color:"#F59E0B" },
+];
+
+const POLICY_TEXT = `SETUP & TAKEDOWN
+Our team will deliver, set up, and take down all equipment. The customer must ensure adequate space (30×20×14), access, and a safe setup area free of debris, sharp objects, obstacles, and overhead power lines. If unsafe conditions are present we reserve the right to refuse setup without refund. The customer must ensure all trash and objects not belonging to VIP Party Pods are removed prior to team pickup. Customer must provide access to a reliable power source within 100ft (extension cord provided).
+
+EQUIPMENT USE & CARE
+Customers agree to use all equipment properly and follow all provided instructions. No sharp objects, smoking, or open flames inside or near the inflatable structure. Keep all food and drinks away from electronics (speaker, party lights) — food and drink may be placed on provided tables. Clean all spills IMMEDIATELY. LED lights, sound systems, and electronics must not be tampered with or moved. Equipment must not be used in unsafe weather conditions (high winds, heavy rain, or storms). Equipment must not be overloaded beyond recommended capacity (50 people). No climbing on walls, jumping from heights, or misuse of structures. Failure to follow safety rules may result in immediate shutdown without refund.
+
+RESPONSIBILITY, LIABILITY & DAMAGE
+The customer assumes full responsibility for all guests and participants. VIP Party Pods is not liable for injuries, accidents, or damages resulting from misuse or unsafe behavior. Adult supervision is required at all times. All equipment will be inspected before and after the rental period; any damage will be documented and communicated to the customer.
+
+CARD ON FILE & DAMAGE POLICY
+A valid credit or debit card is required at booking and will be kept securely on file. By completing this booking, the customer authorizes VIP Party Pods LLC to charge the card on file for any damage, missing items, or excessive cleaning fees identified upon inspection following the rental period. If repair or replacement costs exceed $150.00, the customer agrees to pay the additional balance. No damage charge will be applied if all equipment is returned in the same condition as delivered.
+
+WEATHER POLICY
+Rentals may be rescheduled due to severe weather at VIP Party Pods' discretion. Light rain or normal conditions may not qualify for cancellation. The renter is responsible for monitoring weather during the rental period.
+
+Mandatory Shutdown: The inflatable and all electronics must be shut down immediately if winds exceed 15–20 mph, lightning is visible or thunder is heard, heavy rain or sudden storms occur, or any unsafe ground conditions arise. During a storm, all participants must exit immediately, electronics must be powered off and unplugged, and the air pump must be turned off to deflate the tent — leave all equipment inside in the CENTER of the tent. Damage caused by weather after the renter has followed the shutdown protocol is covered by the company. Damage caused because the renter did not follow the protocol will be billed to the renter.
+
+No Refunds for Weather: Once equipment is delivered and set up, no refunds are issued due to weather. A raincheck credit may be issued to reschedule if weather occurs before the halfway mark of your rental time.
+
+CANCELLATION & RESCHEDULING
+• 7+ days before event: full refund of any deposit or payment
+• 3–6 days before event: rain check / credit valid for 12 months, no cash refund
+• Within 48 hours of event: non-refundable
+• You may reschedule one time if done at least 72 hours before your event
+• Rescheduled events must occur within 12 months of the original date
+• Pricing may adjust if you move to a peak-season date or upgrade equipment
+• Rain check credits are valid 12 months, cannot be redeemed for cash, and are non-transferable
+
+By checking the box below and completing this booking, you agree to all terms and policies listed in this Rental Agreement.`;
+
+const DURATION_HOURS = { "4 Hours":4, "6 Hours":6, "All Night":14 };
+const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","9:30 PM"];
+const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let agreed = false;
+let selectedPkg = null;
+let selectedDuration = null;
+let selectedNerfType = null; // "Nerf" or "Nerf Laser Pro" — Battle Bash only
+let selectedDate = null;
+let selectedTime = null;
+let calYear, calMonth;
+let bookings = {}; // { pkgId: [{dateKey, startTime, duration, name, ref}] }
+let blocked = {};  // { pkgId: [dateKey, ...] }
+let currentStep = 0;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.onload = function() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  document.getElementById("policy-text").textContent = POLICY_TEXT;
+  buildPackageGrid();
+  buildAdminPkgSelect();
+  renderStepper();
+  showStep(0);
+};
+
+// ─── VIEWS ────────────────────────────────────────────────────────────────────
+function showView(v) {
+  document.getElementById("view-booking").classList.add("hidden");
+  document.getElementById("view-admin-login").classList.add("hidden");
+  document.getElementById("view-admin").classList.add("hidden");
+  if (v === "booking") { document.getElementById("view-booking").classList.remove("hidden"); document.querySelector(".header-sub").textContent = "Reserve Your Pod"; }
+  if (v === "admin-login") { document.getElementById("view-admin-login").classList.remove("hidden"); document.getElementById("view-admin-login").style.display = "flex"; document.querySelector(".header-sub").textContent = "Owner Dashboard"; }
+  if (v === "admin") { document.getElementById("view-admin").classList.remove("hidden"); document.querySelector(".header-sub").textContent = "Owner Dashboard"; renderAdmin(); }
+}
+
+// ─── STEPPER ─────────────────────────────────────────────────────────────────
+function renderStepper() {
+  const s = document.getElementById("stepper");
+  const l = document.getElementById("step-labels");
+  s.innerHTML = ""; l.innerHTML = "";
+  STEP_NAMES.forEach((name, i) => {
+    const dot = document.createElement("div");
+    dot.className = "step-dot" + (i < currentStep ? " done" : i === currentStep ? " active" : "");
+    dot.textContent = i < currentStep ? "✓" : i + 1;
+    s.appendChild(dot);
+    if (i < STEP_NAMES.length - 1) {
+      const line = document.createElement("div");
+      line.className = "step-line" + (i < currentStep ? " done" : "");
+      line.style.flex = "1";
+      s.appendChild(line);
+    }
+    const lbl = document.createElement("div");
+    lbl.className = "step-label" + (i < currentStep ? " done" : i === currentStep ? " active" : "");
+    lbl.textContent = name;
+    l.appendChild(lbl);
+  });
+}
+
+function showStep(n) {
+  for (let i = 0; i < STEP_NAMES.length; i++) {
+    const el = document.getElementById("step-" + i);
+    if (el) el.classList.toggle("hidden", i !== n);
+  }
+  currentStep = n;
+  renderStepper();
+  window.scrollTo(0, 0);
+}
+
+function goToStep(n) {
+  if (n === 1 && !agreed) return;
+  if (n === 2 && (!selectedPkg || !selectedDuration)) return;
+  if (n === 2 && selectedPkg === "battle-bash-pod" && !selectedNerfType) return;
+  if (n === 3 && (!selectedDate || !selectedTime)) return;
+  if (n === 4 && !infoValid()) return;
+  if (n === 4) buildSummary();
+  showStep(n);
+}
+
+// ─── STEP 0: POLICY ───────────────────────────────────────────────────────────
+function toggleAgreed() {
+  agreed = !agreed;
+  document.getElementById("checkbox").classList.toggle("checked", agreed);
+  const btn = document.getElementById("btn-policy-next");
+  btn.className = "btn " + (agreed ? "btn-primary" : "btn-disabled");
+}
+
+// ─── STEP 1: PACKAGES ─────────────────────────────────────────────────────────
+function buildPackageGrid() {
+  const grid = document.getElementById("package-grid");
+  grid.innerHTML = "";
+  PACKAGES.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "package-card";
+    card.id = "card-" + p.id;
+    card.onclick = () => selectPackage(p.id);
+
+    const nerfSection = p.id === "battle-bash-pod" ? `
+      <div id="nerf-type-section" style="margin-top:14px;display:none;">
+        <div class="includes-label" style="margin-bottom:8px;">Choose Your Battle Style</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="duration-btn" id="nerf-btn-Nerf" onclick="selectNerfType(event,'Nerf')">
+            🎯 Nerf<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Foam Dart Guns & Ammo</span>
+          </button>
+          <button class="duration-btn" id="nerf-btn-NerfLaserPro" onclick="selectNerfType(event,'Nerf Laser Pro')">
+            ⚡ Nerf Laser Pro<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Laser Tag Guns</span>
+          </button>
+        </div>
+      </div>` : "";
+
+    card.innerHTML = `
+      <span class="package-emoji">${p.emoji}</span>
+      <div class="package-name">${p.name}</div>
+      <div class="package-sub">${p.subtitle}</div>
+      <div class="package-desc">${p.description}</div>
+      <div class="includes-label">What's Included</div>
+      ${p.includes.map(inc => `<div class="include-item"><span style="color:${p.color};font-size:10px;">●</span> ${inc}</div>`).join("")}
+      <div class="duration-grid" id="dur-${p.id}">
+        ${p.options.map(opt => `<button class="duration-btn" id="dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}" onclick="selectDuration(event,'${p.id}','${opt.label}',${opt.price},'${p.color}')">${opt.label}<br/><span style="font-size:13px;font-weight:800;">$${opt.price}</span></button>`).join("")}
+      </div>
+      ${nerfSection}`;
+    grid.appendChild(card);
+    if (p.options.length === 1) {
+      card.onclick = () => { selectPackage(p.id); selectDuration({stopPropagation:()=>{}}, p.id, p.options[0].label, p.options[0].price, p.color); };
+    }
+  });
+}
+
+function selectPackage(pkgId) {
+  selectedPkg = pkgId;
+  if (pkgId !== "battle-bash-pod") { selectedNerfType = null; }
+  PACKAGES.forEach(p => {
+    const card = document.getElementById("card-" + p.id);
+    const pkg = PACKAGES.find(x => x.id === p.id);
+    if (p.id === pkgId) {
+      card.style.border = `2px solid ${pkg.color}`;
+      card.style.background = `linear-gradient(135deg, rgba(${hexToRgb(pkg.color)},0.15), rgba(${hexToRgb(pkg.color)},0.05))`;
+    } else {
+      card.style.border = "2px solid rgba(255,255,255,0.08)";
+      card.style.background = "rgba(255,255,255,0.03)";
+    }
+  });
+  if (selectedDuration) {
+    const key = `${pkgId}|${selectedDuration}`;
+    if (!STRIPE_LINKS[key]) { selectedDuration = null; updatePkgNextBtn(); }
+  }
+  updateDatetimeSub();
+}
+
+function selectDuration(e, pkgId, label, price, color) {
+  e.stopPropagation();
+  selectPackage(pkgId);
+  selectedDuration = label;
+  selectedTime = null;
+  // Style all duration buttons
+  PACKAGES.forEach(p => p.options.forEach(opt => {
+    const btn = document.getElementById(`dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}`);
+    if (btn) { btn.style.borderColor = "rgba(255,255,255,0.15)"; btn.style.background = "transparent"; btn.style.color = "rgba(255,255,255,0.45)"; }
+  }));
+  const active = document.getElementById(`dur-btn-${pkgId}-${label.replace(/\s/g,'')}`);
+  if (active) { active.style.borderColor = color; active.style.background = `rgba(${hexToRgb(color)},0.2)`; active.style.color = "#fff"; }
+  // Show nerf type selector for Battle Bash
+  const nerfSection = document.getElementById("nerf-type-section");
+  if (nerfSection) nerfSection.style.display = pkgId === "battle-bash-pod" ? "block" : "none";
+  updatePkgNextBtn();
+  updateDatetimeSub();
+}
+
+function selectNerfType(e, type) {
+  e.stopPropagation();
+  selectedNerfType = type;
+  // Style nerf buttons
+  ["Nerf","NerfLaserPro"].forEach(id => {
+    const btn = document.getElementById("nerf-btn-" + id);
+    if (btn) { btn.style.borderColor = "rgba(255,255,255,0.15)"; btn.style.background = "transparent"; btn.style.color = "rgba(255,255,255,0.45)"; }
+  });
+  const activeId = type === "Nerf" ? "nerf-btn-Nerf" : "nerf-btn-NerfLaserPro";
+  const activeBtn = document.getElementById(activeId);
+  if (activeBtn) { activeBtn.style.borderColor = "#E8372A"; activeBtn.style.background = "rgba(232,55,42,0.2)"; activeBtn.style.color = "#fff"; }
+  updatePkgNextBtn();
+}
+
+function updatePkgNextBtn() {
+  const btn = document.getElementById("btn-pkg-next");
+  const nerfOk = selectedPkg !== "battle-bash-pod" || selectedNerfType !== null;
+  btn.className = "btn " + (selectedPkg && selectedDuration && nerfOk ? "btn-primary" : "btn-disabled");
+}
+
+// ─── STEP 2: DATE & TIME ──────────────────────────────────────────────────────
+function updateDatetimeSub() {
+  const sub = document.getElementById("datetime-sub");
+  if (!sub) return;
+  if (selectedDuration === "All Night") sub.textContent = "Red crossed-out dates are unavailable. All-Nighter rentals begin at 9:30 PM.";
+  else sub.textContent = `Red crossed-out dates are unavailable. Your ${selectedDuration} rental must end by 9:30 PM — only valid start times are shown.`;
+}
+
+function changeMonth(dir) {
+  calMonth += dir;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  updateDatetimeSub();
+  const title = document.getElementById("cal-title");
+  const grid = document.getElementById("cal-grid");
+  const now = new Date();
+  const monthName = new Date(calYear, calMonth).toLocaleString("default", {month:"long", year:"numeric"});
+  title.textContent = monthName;
+  grid.innerHTML = "";
+
+  // Day labels
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
+    const lbl = document.createElement("div");
+    lbl.className = "cal-day-label";
+    lbl.textContent = d;
+    grid.appendChild(lbl);
+  });
+
+  // Empty cells
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement("div");
+    empty.className = "cal-empty";
+    grid.appendChild(empty);
+  }
+
+  // Days
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(calYear, calMonth, i);
+    const key = toDateKey(d);
+    const isPast = (() => { const t = new Date(d); t.setHours(23,59,59); return t < now; })();
+    const isBooked = isDateUnavailable(d);
+    const isToday = d.toDateString() === now.toDateString();
+    const isSel = selectedDate && d.toDateString() === selectedDate.toDateString();
+
+    const day = document.createElement("div");
+    day.className = "cal-day" + (isPast ? " past" : isBooked ? " booked" : "") + (isToday && !isSel ? " today" : "") + (isSel ? " selected" : "");
+    day.textContent = i;
+    if (!isPast && !isBooked) {
+      day.onclick = () => { selectedDate = d; selectedTime = null; renderCalendar(); showTimeSection(); checkDTNext(); };
+    }
+    grid.appendChild(day);
+  }
+}
+
+function isDateUnavailable(d) {
+  if (!selectedPkg) return false;
+  const key = toDateKey(d);
+  if ((blocked[selectedPkg]||[]).includes(key)) return true;
+  return (bookings[selectedPkg]||[]).some(b => b.dateKey === key);
+}
+
+function showTimeSection() {
+  if (!selectedDate) return;
+  const section = document.getElementById("time-section");
+  section.classList.remove("hidden");
+  const label = document.getElementById("time-label");
+  label.innerHTML = `Available start times for <strong style="color:#E9D5FF">${formatDate(selectedDate)}</strong>`;
+  const grid = document.getElementById("time-grid");
+  grid.innerHTML = "";
+  const times = getAvailableTimes(selectedDuration);
+  times.forEach(t => {
+    const btn = document.createElement("div");
+    btn.className = "time-btn" + (selectedTime === t ? " selected" : "");
+    const endT = selectedDuration !== "All Night" ? getEndTime(t, selectedDuration) : null;
+    btn.innerHTML = `${t}<div class="time-end">${endT ? "ends " + endT : "all night"}</div>`;
+    btn.onclick = () => { selectedTime = t; showTimeSection(); checkDTNext(); };
+    grid.appendChild(btn);
+  });
+}
+
+function checkDTNext() {
+  const btn = document.getElementById("btn-dt-next");
+  btn.className = "btn " + (selectedDate && selectedTime ? "btn-primary" : "btn-disabled");
+}
+
+// Show calendar when entering step 2
+const origShowStep = showStep;
+function showStep(n) {
+  for (let i = 0; i < STEP_NAMES.length; i++) {
+    const el = document.getElementById("step-" + i);
+    if (el) el.classList.toggle("hidden", i !== n);
+  }
+  currentStep = n;
+  renderStepper();
+  if (n === 2) { renderCalendar(); if (selectedDate) showTimeSection(); }
+  window.scrollTo(0, 0);
+}
+
+// ─── STEP 3: CUSTOMER INFO ────────────────────────────────────────────────────
+function infoValid() {
+  return ["firstName","lastName","email","phone","address","city","state","zip"].every(id => document.getElementById(id)?.value.trim());
+}
+function checkInfoForm() {
+  const btn = document.getElementById("btn-info-next");
+  btn.className = "btn " + (infoValid() ? "btn-primary" : "btn-disabled");
+}
+
+// ─── STEP 4: CONFIRM & PAY ────────────────────────────────────────────────────
+function buildSummary() {
+  const pkg = PACKAGES.find(p => p.id === selectedPkg);
+  const dur = pkg.options.find(o => o.label === selectedDuration);
+  document.getElementById("sum-pkg").textContent = pkg.name;
+  // Show nerf type if battle bash
+  const nerfRow = document.getElementById("sum-nerf-row");
+  if (selectedPkg === "battle-bash-pod" && selectedNerfType) {
+    document.getElementById("sum-nerf").textContent = selectedNerfType;
+    nerfRow.style.display = "flex";
+  } else { nerfRow.style.display = "none"; }
+  document.getElementById("sum-dur").textContent = selectedDuration;
+  document.getElementById("sum-date").textContent = formatDate(selectedDate);
+  document.getElementById("sum-time").textContent = selectedTime;
+  const endRow = document.getElementById("sum-end-row");
+  if (selectedDuration !== "All Night") { document.getElementById("sum-end").textContent = getEndTime(selectedTime, selectedDuration); endRow.classList.remove("hidden"); }
+  else { endRow.classList.add("hidden"); }
+  document.getElementById("sum-name").textContent = `${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`;
+  document.getElementById("sum-email").textContent = document.getElementById("email").value;
+  document.getElementById("sum-phone").textContent = document.getElementById("phone").value;
+  document.getElementById("sum-address").textContent = `${document.getElementById("address").value}, ${document.getElementById("city").value}, ${document.getElementById("state").value} ${document.getElementById("zip").value}`;
+  document.getElementById("sum-total").textContent = `$${dur.price.toFixed(2)}`;
+}
+
+function handlePayment() {
+  const key = toDateKey(selectedDate);
+  const ref = "VIP-" + Math.random().toString(36).toUpperCase().slice(2, 8);
+  if (!bookings[selectedPkg]) bookings[selectedPkg] = [];
+  const nerfLabel = selectedPkg === "battle-bash-pod" && selectedNerfType ? ` — ${selectedNerfType}` : "";
+  bookings[selectedPkg].push({ dateKey: key, startTime: selectedTime, duration: selectedDuration, nerfType: selectedNerfType, name: `${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`, email: document.getElementById("email").value, phone: document.getElementById("phone").value, ref });
+  // Show thank you page FIRST so customer sees it
+  showThanks(ref, key);
+  // Then open Stripe in new tab after a short delay so thank you page renders first
+  const link = STRIPE_LINKS[`${selectedPkg}|${selectedDuration}`];
+  const params = new URLSearchParams({ client_reference_id: `${selectedPkg}${nerfLabel}-${key}-${ref}` });
+  setTimeout(() => { window.open(`${link}?${params}`, "_blank"); }, 400);
+}
+
+function showThanks(ref, key) {
+  const pkg = PACKAGES.find(p => p.id === selectedPkg);
+  const dur = pkg.options.find(o => o.label === selectedDuration);
+  // Hide all steps
+  for (let i = 0; i < STEP_NAMES.length; i++) {
+    const el = document.getElementById("step-" + i);
+    if (el) el.classList.add("hidden");
+  }
+  document.getElementById("step-thanks").classList.remove("hidden");
+  // Fill in details
+  document.getElementById("ty-pkg").textContent = pkg.name;
+  document.getElementById("ty-dur").textContent = selectedDuration;
+  document.getElementById("ty-date").textContent = formatDate(selectedDate);
+  document.getElementById("ty-time").textContent = selectedTime;
+  document.getElementById("ty-ref").textContent = ref;
+  document.getElementById("ty-total").textContent = `$${dur.price.toFixed(2)}`;
+  // Nerf type
+  const nerfRow = document.getElementById("ty-nerf-row");
+  if (selectedPkg === "battle-bash-pod" && selectedNerfType) {
+    document.getElementById("ty-nerf").textContent = selectedNerfType;
+    nerfRow.style.display = "flex";
+  } else { nerfRow.style.display = "none"; }
+  // End time
+  const endRow = document.getElementById("ty-end-row");
+  if (selectedDuration !== "All Night") {
+    document.getElementById("ty-end").textContent = getEndTime(selectedTime, selectedDuration);
+    endRow.style.display = "flex";
+  } else { endRow.style.display = "none"; }
+  // Update stepper to show all done
+  currentStep = STEP_NAMES.length;
+  renderStepper();
+  window.scrollTo(0, 0);
+}
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+function adminLogin() {
+  const pw = document.getElementById("admin-pw").value;
+  if (pw === ADMIN_PASSWORD) { document.getElementById("admin-error").classList.add("hidden"); showView("admin"); }
+  else { document.getElementById("admin-error").classList.remove("hidden"); }
+}
+function adminLogout() { document.getElementById("admin-pw").value = ""; showView("booking"); }
+
+function buildAdminPkgSelect() {
+  const sel = document.getElementById("block-pkg");
+  PACKAGES.forEach(p => { const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+}
+
+function blockDate() {
+  const pkgId = document.getElementById("block-pkg").value;
+  const date = document.getElementById("block-date").value;
+  if (!date) return;
+  if (!blocked[pkgId]) blocked[pkgId] = [];
+  if (!blocked[pkgId].includes(date)) blocked[pkgId].push(date);
+  document.getElementById("block-date").value = "";
+  renderAdmin();
+}
+
+function unblockDate(pkgId, date) {
+  blocked[pkgId] = (blocked[pkgId]||[]).filter(d => d !== date);
+  renderAdmin();
+}
+
+function cancelBooking(pkgId, ref) {
+  bookings[pkgId] = (bookings[pkgId]||[]).filter(b => b.ref !== ref);
+  renderAdmin();
+}
+
+function renderAdmin() {
+  // Blocked dates
+  const blockedList = document.getElementById("blocked-list");
+  blockedList.innerHTML = "";
+  PACKAGES.forEach(p => {
+    const dates = blocked[p.id]||[];
+    if (!dates.length) return;
+    const section = document.createElement("div");
+    section.style.marginTop = "16px";
+    section.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;">${p.name} — Blocked</div>`;
+    const tags = document.createElement("div");
+    tags.className = "blocked-tags";
+    dates.forEach(d => {
+      tags.innerHTML += `<div class="blocked-tag">${d} <button class="blocked-tag-remove" onclick="unblockDate('${p.id}','${d}')">✕</button></div>`;
+    });
+    section.appendChild(tags);
+    blockedList.appendChild(section);
+  });
+
+  // Bookings
+  const list = document.getElementById("bookings-list");
+  const all = PACKAGES.flatMap(p => (bookings[p.id]||[]).map(b => ({...b, pkgId:p.id, pkgName:p.name}))).sort((a,b) => a.dateKey.localeCompare(b.dateKey));
+  if (!all.length) { list.innerHTML = `<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">No bookings yet.</div>`; return; }
+  list.innerHTML = "";
+  all.forEach(b => {
+    const card = document.createElement("div");
+    card.className = "admin-card";
+    const endTime = b.duration !== "All Night" ? `· Ends ${getEndTime(b.startTime, b.duration)}` : "";
+    const nerfLabel = b.nerfType ? ` · ${b.nerfType}` : "";
+    card.innerHTML = `
+      <div class="booking-item">
+        <div>
+          <div class="booking-name">${b.name} <span class="booking-ref">${b.ref}</span></div>
+          <div class="booking-detail">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div>
+          <div class="booking-detail">${b.email} · ${b.phone}</div>
+          <div class="booking-date">📅 ${b.dateKey}</div>
+        </div>
+        <button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function toDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function formatDate(d) { return d ? d.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"}) : ""; }
+function hexToRgb(hex) { return `${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`; }
+
+function timeToMinutes(t) {
+  const [tp, period] = t.split(" "); let [h,m] = tp.split(":").map(Number);
+  if (period==="PM"&&h!==12) h+=12; if (period==="AM"&&h===12) h=0;
+  return h*60+m;
+}
+function minutesToTime(mins) {
+  const h=Math.floor(mins/60)%24, m=mins%60, period=h>=12?"PM":"AM", dH=h>12?h-12:h===0?12:h;
+  return `${dH}:${m.toString().padStart(2,"0")} ${period}`;
+}
+function getEndTime(startTime, duration) {
+  if (duration==="All Night") return "Morning pickup";
+  return minutesToTime(timeToMinutes(startTime)+DURATION_HOURS[duration]*60);
+}
+function getAvailableTimes(duration) {
+  if (duration==="All Night") return ["9:30 PM"];
+  const maxEnd = timeToMinutes("9:30 PM");
+  return ALL_TIMES.filter(t => timeToMinutes(t)+DURATION_HOURS[duration]*60 <= maxEnd);
+}
+</script>
+</body>
+</html>
