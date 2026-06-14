@@ -356,7 +356,12 @@
       <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">
         <div style="font-size:28px;font-weight:800;color:#FCD34D;" id="stat-revenue">$0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Est. Revenue</div>
-        <div style="font-size:10px;color:rgba(252,211,77,0.5);margin-top:4px;">booked total</div>
+        <div style="font-size:10px;color:rgba(252,211,77,0.5);margin-top:4px;">excl. promos</div>
+      </div>
+      <div onclick="setStatFilter('promo')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#A78BFA'" onmouseout="this.style.borderColor='rgba(167,139,250,0.2)'">
+        <div style="font-size:28px;font-weight:800;color:#C4B5FD;" id="stat-promos">0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Promo / Write Offs</div>
+        <div style="font-size:10px;color:rgba(196,181,253,0.5);margin-top:4px;">click to view</div>
       </div>
       <div onclick="setStatFilter('blocked')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#F87171'" onmouseout="this.style.borderColor='rgba(239,68,68,0.2)'">
         <div style="font-size:28px;font-weight:800;color:#F87171;" id="stat-blocked">0</div>
@@ -391,6 +396,25 @@
         <button class="admin-tab" id="tab-range" onclick="switchTab('range')">📆 Date Range</button>
         <button class="admin-tab" id="tab-weekdays" onclick="switchTab('weekdays')">🗓️ Days of Week</button>
         <button class="admin-tab" id="tab-month" onclick="switchTab('month')">📅 Whole Month</button>
+      </div>
+
+      <!-- QUICK WEEKDAY CONTROLS -->
+      <div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#A78BFA;margin-bottom:10px;">⚡ Quick Weekday Controls</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:12px;">Blocks Monday–Thursday for all packages. Fridays stay open from 5:30 PM onward.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+          <div>
+            <label class="input-label">Block From</label>
+            <input class="input" type="date" id="quick-weekday-start" style="width:160px;"/>
+          </div>
+          <div>
+            <label class="input-label">Block Until</label>
+            <input class="input" type="date" id="quick-weekday-end" style="width:160px;"/>
+          </div>
+          <button onclick="quickBlockWeekdays()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#F87171;padding:14px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">🚫 Block Mon–Thu</button>
+          <button onclick="quickUnblockWeekdays()" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#34D399;padding:14px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">✅ Unblock All Weekdays</button>
+        </div>
+        <div id="weekday-block-status" style="font-size:12px;color:rgba(255,255,255,0.3);margin-top:10px;"></div>
       </div>
 
       <!-- Single date -->
@@ -444,16 +468,20 @@
         </div>
       </div>
 
-      <div id="blocked-list" style="margin-top:16px;"></div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
-        <button onclick="clearAllBlocked()" style="background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.6);padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;">Clear All Blocked Dates for Selected Package</button>
+      <!-- Blocked dates toggle -->
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <button onclick="toggleBlockedList()" id="toggle-blocked-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">
+          👁 Show Blocked Dates
+        </button>
+        <button onclick="clearAllBlocked()" style="background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.6);padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;">Clear All Blocked for Selected Package</button>
       </div>
+      <div id="blocked-list" class="hidden" style="margin-top:12px;"></div>
     </div>
 
     <!-- BOOKINGS -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
       <div class="admin-title" style="margin:0;">📋 All Bookings</div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <select class="input" id="filter-pkg" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
           <option value="all">All Packages</option>
         </select>
@@ -466,6 +494,7 @@
           <option value="all">All Payment</option>
           <option value="unpaid">Unpaid</option>
           <option value="paid">Paid</option>
+          <option value="promo">Promo / Write Off</option>
         </select>
       </div>
     </div>
@@ -473,79 +502,86 @@
 
     <!-- MANUAL BOOKING -->
     <div class="admin-card" style="margin-top:24px;border-color:rgba(167,139,250,0.25);background:rgba(124,58,237,0.06);">
-      <div class="admin-title">📞 Add a Phone / Walk-In Booking</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;">Use this when a customer calls or books in person. This will block the date on the calendar automatically.</div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group"><label class="input-label">First Name</label><input class="input" id="mb-firstName" placeholder="First Name"/></div>
-        <div class="input-group"><label class="input-label">Last Name</label><input class="input" id="mb-lastName" placeholder="Last Name"/></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="toggleManualBooking()">
+        <div class="admin-title" style="margin:0;">📞 Add a Phone / Walk-In Booking</div>
+        <span id="mb-toggle-icon" style="color:#A78BFA;font-size:18px;font-weight:700;">﹢</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group"><label class="input-label">Phone Number</label><input class="input" id="mb-phone" placeholder="(423) 555-0000" type="tel"/></div>
-        <div class="input-group"><label class="input-label">Email Address</label><input class="input" id="mb-email" placeholder="email@example.com" type="email"/></div>
-      </div>
-      <div class="input-group"><label class="input-label">Party Address</label><input class="input" id="mb-address" placeholder="Street Address, City, State ZIP"/></div>
+      <div id="mb-form" class="hidden" style="margin-top:16px;">
+        <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;">Use this when a customer calls or books in person. This will block the date on the calendar automatically.</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group"><label class="input-label">First Name</label><input class="input" id="mb-firstName" placeholder="First Name"/></div>
+          <div class="input-group"><label class="input-label">Last Name</label><input class="input" id="mb-lastName" placeholder="Last Name"/></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group"><label class="input-label">Phone Number</label><input class="input" id="mb-phone" placeholder="(423) 555-0000" type="tel"/></div>
+          <div class="input-group"><label class="input-label">Email Address</label><input class="input" id="mb-email" placeholder="email@example.com" type="email"/></div>
+        </div>
+        <div class="input-group"><label class="input-label">Party Address</label><input class="input" id="mb-address" placeholder="Street Address, City, State ZIP"/></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+          <div class="input-group">
+            <label class="input-label">Package</label>
+            <select class="input" id="mb-pkg" onchange="updateMBDuration()">
+              <option value="">Select Package</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Duration</label>
+            <select class="input" id="mb-duration" onchange="updateMBTimes()">
+              <option value="">Select Duration</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="mb-nerf-section" class="hidden" style="margin-bottom:16px;">
+          <label class="input-label">Battle Style</label>
+          <div style="display:flex;gap:8px;">
+            <button class="admin-tab" id="mb-nerf-Nerf" onclick="selectMBNerf('Nerf')">🎯 Nerf — Foam Dart Guns</button>
+            <button class="admin-tab" id="mb-nerf-NerfLaserPro" onclick="selectMBNerf('Nerf Laser Pro')">⚡ Nerf Laser Pro — Laser Tag</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group"><label class="input-label">Event Date</label><input class="input" type="date" id="mb-date" onchange="updateMBTimes()"/></div>
+          <div class="input-group">
+            <label class="input-label">Start Time</label>
+            <select class="input" id="mb-time">
+              <option value="">Select Time</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="input-group">
+            <label class="input-label">Payment Status</label>
+            <select class="input" id="mb-payment">
+              <option value="unpaid">Unpaid — Owes Balance</option>
+              <option value="cash">Paid — Cash</option>
+              <option value="check">Paid — Check</option>
+              <option value="stripe">Paid — Stripe / Card</option>
+              <option value="deposit">Deposit Only — Balance Owed</option>
+              <option value="promo">Promo / Complimentary — Write Off</option>
+              <option value="partial-promo">Partial Promo — Discounted Rate</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Amount Paid ($)</label>
+            <input class="input" type="number" id="mb-amountpaid" placeholder="0.00" min="0" step="0.01"/>
+          </div>
+        </div>
+
         <div class="input-group">
-          <label class="input-label">Package</label>
-          <select class="input" id="mb-pkg" onchange="updateMBDuration()">
-            <option value="">Select Package</option>
-          </select>
+          <label class="input-label">Notes (optional)</label>
+          <input class="input" id="mb-notes" placeholder="Any special requests, deposit info, notes about this booking..."/>
         </div>
-        <div class="input-group">
-          <label class="input-label">Duration</label>
-          <select class="input" id="mb-duration" onchange="updateMBTimes()">
-            <option value="">Select Duration</option>
-          </select>
-        </div>
+
+        <div id="mb-error" class="hidden" style="color:#F87171;font-size:12px;margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:8px;"></div>
+
+        <button onclick="addManualBooking()" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,0.35);">
+          📞 Add Phone Booking
+        </button>
       </div>
-
-      <div id="mb-nerf-section" class="hidden" style="margin-bottom:16px;">
-        <label class="input-label">Battle Style</label>
-        <div style="display:flex;gap:8px;">
-          <button class="admin-tab" id="mb-nerf-Nerf" onclick="selectMBNerf('Nerf')">🎯 Nerf — Foam Dart Guns</button>
-          <button class="admin-tab" id="mb-nerf-NerfLaserPro" onclick="selectMBNerf('Nerf Laser Pro')">⚡ Nerf Laser Pro — Laser Tag</button>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group"><label class="input-label">Event Date</label><input class="input" type="date" id="mb-date"/></div>
-        <div class="input-group">
-          <label class="input-label">Start Time</label>
-          <select class="input" id="mb-time">
-            <option value="">Select Time</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group">
-          <label class="input-label">Payment Status</label>
-          <select class="input" id="mb-payment">
-            <option value="unpaid">Unpaid — Owes Balance</option>
-            <option value="cash">Paid — Cash</option>
-            <option value="check">Paid — Check</option>
-            <option value="stripe">Paid — Stripe / Card</option>
-            <option value="deposit">Deposit Only — Balance Owed</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label class="input-label">Amount Paid ($)</label>
-          <input class="input" type="number" id="mb-amountpaid" placeholder="0.00" min="0" step="0.01"/>
-        </div>
-      </div>
-
-      <div class="input-group">
-        <label class="input-label">Notes (optional)</label>
-        <input class="input" id="mb-notes" placeholder="Any special requests, deposit info, notes about this booking..."/>
-      </div>
-
-      <div id="mb-error" class="hidden" style="color:#F87171;font-size:12px;margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:8px;"></div>
-
-      <button onclick="addManualBooking()" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,0.35);">
-        📞 Add Phone Booking
-      </button>
     </div>
 
     <div class="damage-note">
@@ -605,7 +641,7 @@ CANCELLATION & RESCHEDULING
 By checking the box below and completing this booking, you agree to all terms and policies listed in this Rental Agreement.`;
 
 const DURATION_HOURS = { "4 Hours":4, "6 Hours":6, "All Night":14 };
-const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","9:30 PM"];
+const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","5:30 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","9:30 PM"];
 const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
 
 let agreed=false, selectedPkg=null, selectedDuration=null, selectedNerfType=null, selectedDate=null, selectedTime=null, calYear, calMonth, currentStep=0;
@@ -713,7 +749,13 @@ function renderCalendar(){
   }
 }
 
-function isDateUnavailable(d){if(!selectedPkg)return false;const key=toDateKey(d);if((blocked[selectedPkg]||[]).includes(key))return true;return(bookings[selectedPkg]||[]).some(b=>b.dateKey===key);}
+function isDateUnavailable(d){
+  const key=toDateKey(d);
+  // Check ALL packages — only 1 tent, so any booking on any package blocks the whole day
+  const anyBooked=PACKAGES.some(p=>(bookings[p.id]||[]).some(b=>b.dateKey===key));
+  const anyBlocked=PACKAGES.some(p=>(blocked[p.id]||[]).includes(key));
+  return anyBooked||anyBlocked;
+}
 
 function showTimeSection(){
   if(!selectedDate)return;document.getElementById("time-section").classList.remove("hidden");
@@ -823,10 +865,17 @@ function updateMBDuration(){
 
 function updateMBTimes(){
   const dur=document.getElementById("mb-duration").value;
+  const dateVal=document.getElementById("mb-date").value;
   const timeSel=document.getElementById("mb-time");
   timeSel.innerHTML='<option value="">Select Time</option>';
   if(!dur)return;
-  getAvailableTimes(dur).forEach(t=>{
+  let times=getAvailableTimes(dur);
+  // Apply Friday rule for manual bookings too
+  if(dateVal){
+    const d=new Date(dateVal+"T12:00:00");
+    if(d.getDay()===5){times=times.filter(t=>timeToMinutes(t)>=timeToMinutes("5:30 PM"));}
+  }
+  times.forEach(t=>{
     const endT=dur!=="All Night"?` (ends ${getEndTime(t,dur)})`:" (all night)";
     const o=document.createElement("option");o.value=t;o.textContent=t+endT;timeSel.appendChild(o);
   });
@@ -864,7 +913,7 @@ function addManualBooking(){
   }
   // Check if date is already booked
   if(isDateAlreadyBooked(pkgId,date)){
-    errEl.textContent=`That date is already booked or blocked for this package. Please choose a different date.`;
+    errEl.textContent=`That date is already booked. You only have 1 tent so only 1 party per day is allowed. Please choose a different date.`;
     errEl.classList.remove("hidden");return;
   }
   errEl.classList.add("hidden");
@@ -897,13 +946,64 @@ function addManualBooking(){
 }
 
 function isDateAlreadyBooked(pkgId,dateKey){
-  if((blocked[pkgId]||[]).includes(dateKey))return true;
-  return(bookings[pkgId]||[]).some(b=>b.dateKey===dateKey);
+  // Check ALL packages since we only have 1 tent
+  const anyBooked=PACKAGES.some(p=>(bookings[p.id]||[]).some(b=>b.dateKey===dateKey));
+  const anyBlocked=PACKAGES.some(p=>(blocked[p.id]||[]).includes(dateKey));
+  return anyBooked||anyBlocked;
 }
 
 function switchTab(tab){
   activeTab=tab;
   ["single","range","weekdays","month"].forEach(t=>{document.getElementById("block-panel-"+t).classList.toggle("hidden",t!==tab);document.getElementById("tab-"+t).classList.toggle("active",t===tab);});
+}
+
+function toggleBlockedList(){
+  const list=document.getElementById("blocked-list");
+  const btn=document.getElementById("toggle-blocked-btn");
+  const isHidden=list.classList.contains("hidden");
+  list.classList.toggle("hidden",!isHidden);
+  btn.textContent=isHidden?"👁 Hide Blocked Dates":"👁 Show Blocked Dates";
+}
+
+function toggleManualBooking(){
+  const form=document.getElementById("mb-form");
+  const icon=document.getElementById("mb-toggle-icon");
+  const isHidden=form.classList.contains("hidden");
+  form.classList.toggle("hidden",!isHidden);
+  icon.textContent=isHidden?"－":"﹢";
+}
+  const start=document.getElementById("quick-weekday-start").value;
+  const end=document.getElementById("quick-weekday-end").value;
+  if(!start||!end){alert("Please pick a start and end date first.");return;}
+  if(start>end){alert("Start date must be before end date.");return;}
+  let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
+  let count=0;
+  while(cur<=endDate){
+    const day=cur.getDay();
+    // Block Mon(1) Tue(2) Wed(3) Thu(4) — leave Fri(5) open for evening bookings
+    if(day>=1&&day<=4){PACKAGES.forEach(p=>addBlock(p.id,toDateKey(cur)));count++;}
+    cur.setDate(cur.getDate()+1);
+  }
+  document.getElementById("quick-weekday-start").value="";
+  document.getElementById("quick-weekday-end").value="";
+  const status=document.getElementById("weekday-block-status");
+  status.textContent=`✅ Blocked ${count} weekdays (Mon–Thu) across all packages. Fridays remain open from 5:30 PM.`;
+  status.style.color="#34D399";
+  renderAdmin();
+}
+
+function quickUnblockWeekdays(){
+  if(!confirm("This will remove ALL Monday–Thursday blocks across all packages. Are you sure?"))return;
+  PACKAGES.forEach(p=>{
+    blocked[p.id]=(blocked[p.id]||[]).filter(dateKey=>{
+      const day=new Date(dateKey+"T12:00:00").getDay();
+      return day<1||day>4; // Keep everything that's NOT Mon-Thu
+    });
+  });
+  const status=document.getElementById("weekday-block-status");
+  status.textContent="✅ All Monday–Thursday blocks removed. Weekdays are now open for booking.";
+  status.style.color="#34D399";
+  renderAdmin();
 }
 
 function addBlock(pkgId,dateKey){if(!blocked[pkgId])blocked[pkgId]=[];if(!blocked[pkgId].includes(dateKey))blocked[pkgId].push(dateKey);}
@@ -966,8 +1066,15 @@ function setStatFilter(type){
     return;
   }
   document.getElementById('blocked-quick-view').classList.add('hidden');
-  document.getElementById('filter-time').value=type==='upcoming'?'upcoming':'all';
-  document.getElementById('filter-pkg').value='all';
+  if(type==='promo'){
+    document.getElementById('filter-payment').value='promo';
+    document.getElementById('filter-time').value='all';
+    document.getElementById('filter-pkg').value='all';
+  } else {
+    document.getElementById('filter-time').value=type==='upcoming'?'upcoming':'all';
+    document.getElementById('filter-pkg').value='all';
+    document.getElementById('filter-payment').value='all';
+  }
   renderAdmin();
   setTimeout(()=>document.getElementById('bookings-list').scrollIntoView({behavior:'smooth'}),50);
 }
@@ -1003,14 +1110,17 @@ function renderAdmin(){
   const now=new Date();
   const allB=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id})));
   const upcoming=allB.filter(b=>new Date(b.dateKey+"T23:59:59")>=now);
-  const revenue=allB.reduce((sum,b)=>sum+(b.price||0),0);
+  const revenue=allB.filter(b=>b.paymentStatus!=="promo"&&b.paymentStatus!=="partial-promo").reduce((sum,b)=>sum+(b.price||0),0);
+  const promoCount=allB.filter(b=>b.paymentStatus==="promo"||b.paymentStatus==="partial-promo").length;
   const totalBlocked=PACKAGES.reduce((sum,p)=>sum+(blocked[p.id]||[]).length,0);
   document.getElementById("stat-total-bookings").textContent=allB.length;
   document.getElementById("stat-upcoming").textContent=upcoming.length;
   document.getElementById("stat-revenue").textContent="$"+revenue.toLocaleString();
   document.getElementById("stat-blocked").textContent=totalBlocked;
+  document.getElementById("stat-promos").textContent=promoCount;
 
   const blockedList=document.getElementById("blocked-list");
+  const wasHidden=blockedList.classList.contains("hidden");
   blockedList.innerHTML="";
   selectedBlockPkgs.forEach(pkgId=>{
     const p=PACKAGES.find(x=>x.id===pkgId);
@@ -1031,6 +1141,7 @@ function renderAdmin(){
     });
     section.appendChild(tags);blockedList.appendChild(section);
   });
+  if(wasHidden)blockedList.classList.add("hidden");
 
   const filterPkg=document.getElementById("filter-pkg").value;
   const filterTime=document.getElementById("filter-time").value;
@@ -1041,6 +1152,7 @@ function renderAdmin(){
   if(filterTime==="past")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")<now);
   if(filterPayment==="unpaid")filtered=filtered.filter(b=>b.paymentStatus==="unpaid"||b.paymentStatus==="deposit"||!b.paymentStatus);
   if(filterPayment==="paid")filtered=filtered.filter(b=>b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe");
+  if(filterPayment==="promo")filtered=filtered.filter(b=>b.paymentStatus==="promo"||b.paymentStatus==="partial-promo");
   filtered.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
 
   const list=document.getElementById("bookings-list");
@@ -1061,6 +1173,8 @@ function renderAdmin(){
     else if(ps==="cash") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Cash</span>`;
     else if(ps==="check") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Check</span>`;
     else if(ps==="stripe") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Stripe</span>`;
+    else if(ps==="promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Promo — Write Off</span>`;
+    else if(ps==="partial-promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Partial Promo</span>`;
     const amtPaid=b.amountPaid>0?`<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:4px;">($${b.amountPaid} paid)</span>`:"";
     const balance=b.price&&(b.amountPaid||0)<b.price?`<span style="color:#F87171;font-size:11px;margin-left:4px;">Balance owed: $${(b.price-(b.amountPaid||0)).toFixed(2)}</span>`:"";
     const notesLine=b.notes?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic;">📝 ${b.notes}</div>`:"";
@@ -1091,7 +1205,16 @@ function hexToRgb(hex){return `${parseInt(hex.slice(1,3),16)},${parseInt(hex.sli
 function timeToMinutes(t){const [tp,period]=t.split(" ");let [h,m]=tp.split(":").map(Number);if(period==="PM"&&h!==12)h+=12;if(period==="AM"&&h===12)h=0;return h*60+m;}
 function minutesToTime(mins){const h=Math.floor(mins/60)%24,m=mins%60,period=h>=12?"PM":"AM",dH=h>12?h-12:h===0?12:h;return `${dH}:${m.toString().padStart(2,"0")} ${period}`;}
 function getEndTime(startTime,duration){if(duration==="All Night")return "Morning pickup";return minutesToTime(timeToMinutes(startTime)+DURATION_HOURS[duration]*60);}
-function getAvailableTimes(duration){if(duration==="All Night")return["9:30 PM"];const maxEnd=timeToMinutes("9:30 PM");return ALL_TIMES.filter(t=>timeToMinutes(t)+DURATION_HOURS[duration]*60<=maxEnd);}
+function getAvailableTimes(duration){
+  if(duration==="All Night")return["9:30 PM"];
+  const maxEnd=timeToMinutes("9:30 PM");
+  let times=ALL_TIMES.filter(t=>timeToMinutes(t)+DURATION_HOURS[duration]*60<=maxEnd);
+  // Fridays only available from 5:30 PM onward
+  if(selectedDate&&selectedDate.getDay()===5){
+    times=times.filter(t=>timeToMinutes(t)>=timeToMinutes("5:30 PM"));
+  }
+  return times;
+}
 </script>
 </body>
 </html>
