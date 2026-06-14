@@ -343,22 +343,35 @@
 
     <!-- QUICK STATS -->
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;">
-      <div style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;text-align:center;">
+      <div onclick="setStatFilter('all')" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#7C3AED'" onmouseout="this.style.borderColor='rgba(124,58,237,0.2)'">
         <div style="font-size:28px;font-weight:800;color:#A78BFA;" id="stat-total-bookings">0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Total Bookings</div>
+        <div style="font-size:10px;color:rgba(167,139,250,0.5);margin-top:4px;">click to view all</div>
       </div>
-      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:16px;text-align:center;">
+      <div onclick="setStatFilter('upcoming')" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#34D399'" onmouseout="this.style.borderColor='rgba(16,185,129,0.2)'">
         <div style="font-size:28px;font-weight:800;color:#34D399;" id="stat-upcoming">0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Upcoming</div>
+        <div style="font-size:10px;color:rgba(52,211,153,0.5);margin-top:4px;">click to view</div>
       </div>
       <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">
         <div style="font-size:28px;font-weight:800;color:#FCD34D;" id="stat-revenue">$0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Est. Revenue</div>
+        <div style="font-size:10px;color:rgba(252,211,77,0.5);margin-top:4px;">booked total</div>
       </div>
-      <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;">
+      <div onclick="setStatFilter('blocked')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#F87171'" onmouseout="this.style.borderColor='rgba(239,68,68,0.2)'">
         <div style="font-size:28px;font-weight:800;color:#F87171;" id="stat-blocked">0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Blocked Dates</div>
+        <div style="font-size:10px;color:rgba(248,113,113,0.5);margin-top:4px;">click to manage</div>
       </div>
+    </div>
+
+    <!-- BLOCKED DATES QUICK VIEW (shown when stat card clicked) -->
+    <div id="blocked-quick-view" class="hidden">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="admin-title" style="margin:0;">🚫 All Blocked Dates — Click Any Date to Unblock</div>
+        <button onclick="document.getElementById('blocked-quick-view').classList.add('hidden')" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;">Close ✕</button>
+      </div>
+      <div id="blocked-quick-list" style="margin-bottom:24px;"></div>
     </div>
 
     <!-- AVAILABILITY CONTROLS -->
@@ -367,6 +380,11 @@
       <div style="margin-bottom:16px;">
         <label class="input-label">Apply blocks to</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;" id="block-pkg-btns"></div>
+        <div style="margin-top:8px;">
+          <button onclick="selectAllPkgs()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#F87171;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">🚫 Block ALL Packages (Full Day Off)</button>
+          <button onclick="clearPkgSelection()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:8px;">Clear Selection</button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;">You can select one, multiple, or all packages to block at the same time.</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
         <button class="admin-tab active" id="tab-single" onclick="switchTab('single')">📅 Single Date</button>
@@ -444,9 +462,92 @@
           <option value="upcoming">Upcoming</option>
           <option value="past">Past</option>
         </select>
+        <select class="input" id="filter-payment" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
+          <option value="all">All Payment</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="paid">Paid</option>
+        </select>
       </div>
     </div>
     <div id="bookings-list"></div>
+
+    <!-- MANUAL BOOKING -->
+    <div class="admin-card" style="margin-top:24px;border-color:rgba(167,139,250,0.25);background:rgba(124,58,237,0.06);">
+      <div class="admin-title">📞 Add a Phone / Walk-In Booking</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;">Use this when a customer calls or books in person. This will block the date on the calendar automatically.</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="input-group"><label class="input-label">First Name</label><input class="input" id="mb-firstName" placeholder="First Name"/></div>
+        <div class="input-group"><label class="input-label">Last Name</label><input class="input" id="mb-lastName" placeholder="Last Name"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="input-group"><label class="input-label">Phone Number</label><input class="input" id="mb-phone" placeholder="(423) 555-0000" type="tel"/></div>
+        <div class="input-group"><label class="input-label">Email Address</label><input class="input" id="mb-email" placeholder="email@example.com" type="email"/></div>
+      </div>
+      <div class="input-group"><label class="input-label">Party Address</label><input class="input" id="mb-address" placeholder="Street Address, City, State ZIP"/></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+        <div class="input-group">
+          <label class="input-label">Package</label>
+          <select class="input" id="mb-pkg" onchange="updateMBDuration()">
+            <option value="">Select Package</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Duration</label>
+          <select class="input" id="mb-duration" onchange="updateMBTimes()">
+            <option value="">Select Duration</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="mb-nerf-section" class="hidden" style="margin-bottom:16px;">
+        <label class="input-label">Battle Style</label>
+        <div style="display:flex;gap:8px;">
+          <button class="admin-tab" id="mb-nerf-Nerf" onclick="selectMBNerf('Nerf')">🎯 Nerf — Foam Dart Guns</button>
+          <button class="admin-tab" id="mb-nerf-NerfLaserPro" onclick="selectMBNerf('Nerf Laser Pro')">⚡ Nerf Laser Pro — Laser Tag</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="input-group"><label class="input-label">Event Date</label><input class="input" type="date" id="mb-date"/></div>
+        <div class="input-group">
+          <label class="input-label">Start Time</label>
+          <select class="input" id="mb-time">
+            <option value="">Select Time</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="input-group">
+          <label class="input-label">Payment Status</label>
+          <select class="input" id="mb-payment">
+            <option value="unpaid">Unpaid — Owes Balance</option>
+            <option value="cash">Paid — Cash</option>
+            <option value="check">Paid — Check</option>
+            <option value="stripe">Paid — Stripe / Card</option>
+            <option value="deposit">Deposit Only — Balance Owed</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Amount Paid ($)</label>
+          <input class="input" type="number" id="mb-amountpaid" placeholder="0.00" min="0" step="0.01"/>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Notes (optional)</label>
+        <input class="input" id="mb-notes" placeholder="Any special requests, deposit info, notes about this booking..."/>
+      </div>
+
+      <div id="mb-error" class="hidden" style="color:#F87171;font-size:12px;margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.08);border-radius:8px;"></div>
+
+      <button onclick="addManualBooking()" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 24px rgba(124,58,237,0.35);">
+        📞 Add Phone Booking
+      </button>
+    </div>
+
     <div class="damage-note">
       💳 To charge a customer for damages: log into <strong>stripe.com</strong> → Customers → find by name or email → Charge customer. Stripe sends them a receipt automatically.
     </div>
@@ -508,7 +609,7 @@ const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM
 const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
 
 let agreed=false, selectedPkg=null, selectedDuration=null, selectedNerfType=null, selectedDate=null, selectedTime=null, calYear, calMonth, currentStep=0;
-let bookings={}, blocked={}, selectedBlockPkg=null, selectedDays=new Set(), activeTab="single";
+let bookings={}, blocked={}, selectedBlockPkgs=new Set(), selectedDays=new Set(), activeTab="single";
 
 window.onload = function() {
   const now = new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
@@ -669,13 +770,136 @@ function buildAdminPkgBtns(){
   const wrap=document.getElementById("block-pkg-btns");
   PACKAGES.forEach((p,i)=>{
     const btn=document.createElement("button");btn.id="block-pkg-btn-"+p.id;btn.className="admin-tab"+(i===0?" active":"");btn.textContent=p.emoji+" "+p.name;
-    btn.onclick=()=>{selectedBlockPkg=p.id;document.querySelectorAll("#block-pkg-btns .admin-tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderAdmin();};
+    btn.onclick=()=>{
+      if(selectedBlockPkgs.has(p.id)){selectedBlockPkgs.delete(p.id);btn.classList.remove("active");}
+      else{selectedBlockPkgs.add(p.id);btn.classList.add("active");}
+      if(selectedBlockPkgs.size===0){selectedBlockPkgs.add(PACKAGES[0].id);document.getElementById("block-pkg-btn-"+PACKAGES[0].id).classList.add("active");}
+      renderAdmin();
+    };
     wrap.appendChild(btn);
   });
-  selectedBlockPkg=PACKAGES[0].id;
+  selectedBlockPkgs.add(PACKAGES[0].id);
 }
 
-function buildFilterPkg(){const sel=document.getElementById("filter-pkg");PACKAGES.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o);});}
+function selectAllPkgs(){
+  selectedBlockPkgs.clear();
+  PACKAGES.forEach(p=>{selectedBlockPkgs.add(p.id);document.getElementById("block-pkg-btn-"+p.id).classList.add("active");});
+  renderAdmin();
+}
+
+function clearPkgSelection(){
+  selectedBlockPkgs.clear();
+  PACKAGES.forEach(p=>document.getElementById("block-pkg-btn-"+p.id).classList.remove("active"));
+  selectedBlockPkgs.add(PACKAGES[0].id);
+  document.getElementById("block-pkg-btn-"+PACKAGES[0].id).classList.add("active");
+  renderAdmin();
+}
+
+function buildFilterPkg(){
+  const sel=document.getElementById("filter-pkg");
+  PACKAGES.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o);});
+  // Also build manual booking package select
+  const mbSel=document.getElementById("mb-pkg");
+  PACKAGES.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.emoji+" "+p.name;mbSel.appendChild(o);});
+}
+
+let mbNerfType = null;
+
+function updateMBDuration(){
+  const pkgId=document.getElementById("mb-pkg").value;
+  const durSel=document.getElementById("mb-duration");
+  durSel.innerHTML='<option value="">Select Duration</option>';
+  if(!pkgId)return;
+  const pkg=PACKAGES.find(p=>p.id===pkgId);
+  pkg.options.forEach(opt=>{const o=document.createElement("option");o.value=opt.label;o.textContent=`${opt.label} — $${opt.price}`;durSel.appendChild(o);});
+  // Show/hide nerf section
+  const nerfSection=document.getElementById("mb-nerf-section");
+  nerfSection.classList.toggle("hidden",pkgId!=="battle-bash-pod");
+  mbNerfType=null;
+  ["Nerf","NerfLaserPro"].forEach(id=>{const btn=document.getElementById("mb-nerf-"+id);if(btn){btn.classList.remove("active");}});
+  // Update time options
+  updateMBTimes();
+}
+
+function updateMBTimes(){
+  const dur=document.getElementById("mb-duration").value;
+  const timeSel=document.getElementById("mb-time");
+  timeSel.innerHTML='<option value="">Select Time</option>';
+  if(!dur)return;
+  getAvailableTimes(dur).forEach(t=>{
+    const endT=dur!=="All Night"?` (ends ${getEndTime(t,dur)})`:" (all night)";
+    const o=document.createElement("option");o.value=t;o.textContent=t+endT;timeSel.appendChild(o);
+  });
+}
+
+function selectMBNerf(type){
+  mbNerfType=type;
+  ["Nerf","NerfLaserPro"].forEach(id=>document.getElementById("mb-nerf-"+id).classList.remove("active"));
+  document.getElementById("mb-nerf-"+(type==="Nerf"?"Nerf":"NerfLaserPro")).classList.add("active");
+}
+
+function addManualBooking(){
+  const firstName=document.getElementById("mb-firstName").value.trim();
+  const lastName=document.getElementById("mb-lastName").value.trim();
+  const phone=document.getElementById("mb-phone").value.trim();
+  const email=document.getElementById("mb-email").value.trim();
+  const address=document.getElementById("mb-address").value.trim();
+  const pkgId=document.getElementById("mb-pkg").value;
+  const duration=document.getElementById("mb-duration").value;
+  const date=document.getElementById("mb-date").value;
+  const time=document.getElementById("mb-time").value;
+  const payment=document.getElementById("mb-payment").value;
+  const amountPaid=document.getElementById("mb-amountpaid").value;
+  const notes=document.getElementById("mb-notes").value.trim();
+  const errEl=document.getElementById("mb-error");
+
+  // Validate
+  if(!firstName||!lastName||!phone||!pkgId||!duration||!date||!time){
+    errEl.textContent="Please fill in: name, phone, package, duration, date, and time.";
+    errEl.classList.remove("hidden");return;
+  }
+  if(pkgId==="battle-bash-pod"&&!mbNerfType){
+    errEl.textContent="Please select a Battle Style (Nerf or Nerf Laser Pro).";
+    errEl.classList.remove("hidden");return;
+  }
+  // Check if date is already booked
+  if(isDateAlreadyBooked(pkgId,date)){
+    errEl.textContent=`That date is already booked or blocked for this package. Please choose a different date.`;
+    errEl.classList.remove("hidden");return;
+  }
+  errEl.classList.add("hidden");
+
+  const pkg=PACKAGES.find(p=>p.id===pkgId);
+  const dur=pkg.options.find(o=>o.label===duration);
+  const ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
+
+  if(!bookings[pkgId])bookings[pkgId]=[];
+  bookings[pkgId].push({
+    dateKey:date, startTime:time, duration, nerfType:pkgId==="battle-bash-pod"?mbNerfType:null,
+    name:`${firstName} ${lastName}`, email, phone, address, ref, price:dur.price,
+    paymentStatus:payment, amountPaid:parseFloat(amountPaid)||0, notes,
+    source:"phone", addedBy:"owner"
+  });
+
+  // Clear form
+  ["mb-firstName","mb-lastName","mb-phone","mb-email","mb-address","mb-notes","mb-amountpaid","mb-date"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("mb-pkg").value="";
+  document.getElementById("mb-duration").innerHTML='<option value="">Select Duration</option>';
+  document.getElementById("mb-time").innerHTML='<option value="">Select Time</option>';
+  document.getElementById("mb-payment").value="unpaid";
+  document.getElementById("mb-nerf-section").classList.add("hidden");
+  mbNerfType=null;
+
+  renderAdmin();
+  // Scroll to bookings list to show the new booking
+  setTimeout(()=>document.getElementById("bookings-list").scrollIntoView({behavior:"smooth"}),100);
+  alert(`✅ Booking added for ${firstName} ${lastName} on ${date}!`);
+}
+
+function isDateAlreadyBooked(pkgId,dateKey){
+  if((blocked[pkgId]||[]).includes(dateKey))return true;
+  return(bookings[pkgId]||[]).some(b=>b.dateKey===dateKey);
+}
 
 function switchTab(tab){
   activeTab=tab;
@@ -683,14 +907,15 @@ function switchTab(tab){
 }
 
 function addBlock(pkgId,dateKey){if(!blocked[pkgId])blocked[pkgId]=[];if(!blocked[pkgId].includes(dateKey))blocked[pkgId].push(dateKey);}
+function addBlockAll(dateKey){selectedBlockPkgs.forEach(pkgId=>addBlock(pkgId,dateKey));}
 
-function blockSingleDate(){const date=document.getElementById("block-single-date").value;if(!date)return;addBlock(selectedBlockPkg,date);document.getElementById("block-single-date").value="";renderAdmin();}
+function blockSingleDate(){const date=document.getElementById("block-single-date").value;if(!date)return;addBlockAll(date);document.getElementById("block-single-date").value="";renderAdmin();}
 
 function blockDateRange(){
   const start=document.getElementById("block-range-start").value,end=document.getElementById("block-range-end").value;
   if(!start||!end||start>end)return;
   let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
-  while(cur<=endDate){addBlock(selectedBlockPkg,toDateKey(cur));cur.setDate(cur.getDate()+1);}
+  while(cur<=endDate){addBlockAll(toDateKey(cur));cur.setDate(cur.getDate()+1);}
   document.getElementById("block-range-start").value="";document.getElementById("block-range-end").value="";renderAdmin();
 }
 
@@ -702,20 +927,77 @@ function blockWeekdays(){
   const start=document.getElementById("block-days-start").value,end=document.getElementById("block-days-end").value;
   if(!start||!end||!selectedDays.size)return;
   let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
-  while(cur<=endDate){if(selectedDays.has(cur.getDay()))addBlock(selectedBlockPkg,toDateKey(cur));cur.setDate(cur.getDate()+1);}
+  while(cur<=endDate){if(selectedDays.has(cur.getDay()))addBlockAll(toDateKey(cur));cur.setDate(cur.getDate()+1);}
   document.getElementById("block-days-start").value="";document.getElementById("block-days-end").value="";renderAdmin();
 }
 
 function blockWholeMonth(){
   const month=document.getElementById("block-month").value;if(!month)return;
   const [year,mon]=month.split("-").map(Number);const dim=new Date(year,mon,0).getDate();
-  for(let i=1;i<=dim;i++){const d=new Date(year,mon-1,i);addBlock(selectedBlockPkg,toDateKey(d));}
+  for(let i=1;i<=dim;i++){const d=new Date(year,mon-1,i);addBlockAll(toDateKey(d));}
   document.getElementById("block-month").value="";renderAdmin();
 }
 
-function unblockDate(pkgId,date){blocked[pkgId]=(blocked[pkgId]||[]).filter(d=>d!==date);renderAdmin();}
-function clearAllBlocked(){if(!confirm(`Clear all blocked dates for ${PACKAGES.find(p=>p.id===selectedBlockPkg).name}?`))return;blocked[selectedBlockPkg]=[];renderAdmin();}
+function unblockDate(pkgId,date){blocked[pkgId]=(blocked[pkgId]||[]).filter(d=>d!==date);renderAdmin();renderBlockedQuickView();}
+function clearAllBlocked(){
+  const names=[...selectedBlockPkgs].map(id=>PACKAGES.find(p=>p.id===id).name).join(", ");
+  if(!confirm(`Clear all blocked dates for: ${names}?`))return;
+  selectedBlockPkgs.forEach(pkgId=>{blocked[pkgId]=[];});
+  renderAdmin();
+}
 function cancelBooking(pkgId,ref){if(!confirm("Cancel this booking?"))return;bookings[pkgId]=(bookings[pkgId]||[]).filter(b=>b.ref!==ref);renderAdmin();}
+
+function markPaid(pkgId,ref){
+  const methods=["cash","check","stripe"];
+  const choice=prompt("Mark as paid by:\n1. Cash\n2. Check\n3. Stripe/Card\n\nEnter 1, 2, or 3:");
+  if(!choice)return;
+  const method=methods[parseInt(choice)-1];
+  if(!method){alert("Invalid choice.");return;}
+  const booking=bookings[pkgId]?.find(b=>b.ref===ref);
+  if(booking){booking.paymentStatus=method;booking.amountPaid=booking.price||0;}
+  renderAdmin();
+}
+
+function setStatFilter(type){
+  if(type==='blocked'){
+    document.getElementById('blocked-quick-view').classList.remove('hidden');
+    renderBlockedQuickView();
+    setTimeout(()=>document.getElementById('blocked-quick-view').scrollIntoView({behavior:'smooth'}),50);
+    return;
+  }
+  document.getElementById('blocked-quick-view').classList.add('hidden');
+  document.getElementById('filter-time').value=type==='upcoming'?'upcoming':'all';
+  document.getElementById('filter-pkg').value='all';
+  renderAdmin();
+  setTimeout(()=>document.getElementById('bookings-list').scrollIntoView({behavior:'smooth'}),50);
+}
+
+function renderBlockedQuickView(){
+  const container=document.getElementById('blocked-quick-list');
+  const hasAny=PACKAGES.some(p=>(blocked[p.id]||[]).length>0);
+  if(!hasAny){container.innerHTML=`<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;padding:20px;">No dates are currently blocked.</div>`;return;}
+  container.innerHTML='';
+  PACKAGES.forEach(p=>{
+    const dates=(blocked[p.id]||[]).sort();
+    if(!dates.length)return;
+    const section=document.createElement('div');
+    section.style.marginBottom='20px';
+    section.innerHTML=`<div style="font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:10px;">${p.emoji} ${p.name} — ${dates.length} date${dates.length!==1?'s':''} blocked</div>`;
+    const grid=document.createElement('div');
+    grid.style.cssText='display:flex;flex-wrap:wrap;gap:8px;';
+    dates.forEach(d=>{
+      const tag=document.createElement('div');
+      tag.style.cssText='background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:8px 14px;font-size:12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all 0.2s;';
+      tag.innerHTML=`<span>${d}</span><span style="color:#34D399;font-weight:700;" title="Click to unblock">🔓 Unblock</span>`;
+      tag.onclick=()=>{if(confirm(`Unblock ${d} for ${p.name}?`)){unblockDate(p.id,d);}};
+      tag.onmouseover=()=>{tag.style.borderColor='#34D399';tag.style.background='rgba(52,211,153,0.08)';};
+      tag.onmouseout=()=>{tag.style.borderColor='rgba(239,68,68,0.25)';tag.style.background='rgba(239,68,68,0.1)';};
+      grid.appendChild(tag);
+    });
+    section.appendChild(grid);
+    container.appendChild(section);
+  });
+}
 
 function renderAdmin(){
   const now=new Date();
@@ -729,21 +1011,36 @@ function renderAdmin(){
   document.getElementById("stat-blocked").textContent=totalBlocked;
 
   const blockedList=document.getElementById("blocked-list");
-  const dates=(blocked[selectedBlockPkg]||[]).sort();
-  if(!dates.length){blockedList.innerHTML=`<div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:12px;">No dates blocked for this package.</div>`;}
-  else{
-    blockedList.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:16px;">${PACKAGES.find(p=>p.id===selectedBlockPkg).name} — ${dates.length} Blocked Date${dates.length!==1?"s":""}</div>`;
+  blockedList.innerHTML="";
+  selectedBlockPkgs.forEach(pkgId=>{
+    const p=PACKAGES.find(x=>x.id===pkgId);
+    const dates=(blocked[pkgId]||[]).sort();
+    if(!dates.length){
+      const empty=document.createElement("div");
+      empty.style.cssText="font-size:12px;color:rgba(255,255,255,0.25);margin-top:12px;";
+      empty.textContent=`No dates blocked for ${p.name}.`;
+      blockedList.appendChild(empty);return;
+    }
+    const section=document.createElement("div");section.style.marginTop="16px";
+    section.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;">${p.emoji} ${p.name} — ${dates.length} Blocked Date${dates.length!==1?"s":""}</div>`;
     const tags=document.createElement("div");tags.className="blocked-tags";
-    dates.forEach(d=>{tags.innerHTML+=`<div class="blocked-tag">${d} <button class="blocked-tag-remove" onclick="unblockDate('${selectedBlockPkg}','${d}')">✕</button></div>`;});
-    blockedList.appendChild(tags);
-  }
+    dates.forEach(d=>{
+      const tag=document.createElement("div");tag.className="blocked-tag";tag.style.cursor="pointer";
+      tag.innerHTML=`<span>${d}</span><button class="blocked-tag-remove" onclick="unblockDate('${pkgId}','${d}')">✕ Unblock</button>`;
+      tags.appendChild(tag);
+    });
+    section.appendChild(tags);blockedList.appendChild(section);
+  });
 
   const filterPkg=document.getElementById("filter-pkg").value;
   const filterTime=document.getElementById("filter-time").value;
+  const filterPayment=document.getElementById("filter-payment").value;
   let filtered=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id,pkgName:p.name})));
   if(filterPkg!=="all")filtered=filtered.filter(b=>b.pkgId===filterPkg);
   if(filterTime==="upcoming")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")>=now);
   if(filterTime==="past")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")<now);
+  if(filterPayment==="unpaid")filtered=filtered.filter(b=>b.paymentStatus==="unpaid"||b.paymentStatus==="deposit"||!b.paymentStatus);
+  if(filterPayment==="paid")filtered=filtered.filter(b=>b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe");
   filtered.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
 
   const list=document.getElementById("bookings-list");
@@ -754,8 +1051,36 @@ function renderAdmin(){
     const card=document.createElement("div");card.className="admin-card";card.style.opacity=isPast?"0.6":"1";
     const endTime=b.duration!=="All Night"?`· Ends ${getEndTime(b.startTime,b.duration)}`:"";
     const nerfLabel=b.nerfType?` · ${b.nerfType}`:"";
-    const badge=isPast?`<span style="background:rgba(255,255,255,0.06);border-radius:20px;padding:2px 8px;font-size:10px;color:rgba(255,255,255,0.3);margin-left:8px;">Past</span>`:`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:8px;">Upcoming</span>`;
-    card.innerHTML=`<div class="booking-item"><div><div class="booking-name">${b.name} <span class="booking-ref">${b.ref}</span>${badge}</div><div class="booking-detail">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div><div class="booking-detail">${b.email} · ${b.phone}</div><div class="booking-date">📅 ${b.dateKey}</div></div><button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button></div>`;
+    const timeBadge=isPast?`<span style="background:rgba(255,255,255,0.06);border-radius:20px;padding:2px 8px;font-size:10px;color:rgba(255,255,255,0.3);margin-left:6px;">Past</span>`:`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">Upcoming</span>`;
+    const sourceBadge=b.source==="phone"?`<span style="background:rgba(14,165,233,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#38BDF8;margin-left:6px;">📞 Phone</span>`:`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🌐 Online</span>`;
+    // Payment badge
+    let payBadge="";
+    const ps=b.paymentStatus;
+    if(!ps||ps==="unpaid") payBadge=`<span style="background:rgba(239,68,68,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#F87171;margin-left:6px;">💰 Unpaid</span>`;
+    else if(ps==="deposit") payBadge=`<span style="background:rgba(245,158,11,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#FCD34D;margin-left:6px;">💰 Deposit Only</span>`;
+    else if(ps==="cash") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Cash</span>`;
+    else if(ps==="check") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Check</span>`;
+    else if(ps==="stripe") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Stripe</span>`;
+    const amtPaid=b.amountPaid>0?`<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:4px;">($${b.amountPaid} paid)</span>`:"";
+    const balance=b.price&&(b.amountPaid||0)<b.price?`<span style="color:#F87171;font-size:11px;margin-left:4px;">Balance owed: $${(b.price-(b.amountPaid||0)).toFixed(2)}</span>`:"";
+    const notesLine=b.notes?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic;">📝 ${b.notes}</div>`:"";
+    const addressLine=b.address?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">📍 ${b.address}</div>`:"";
+    card.innerHTML=`
+      <div class="booking-item">
+        <div style="flex:1;">
+          <div class="booking-name">${b.name} <span class="booking-ref">${b.ref}</span>${timeBadge}${sourceBadge}</div>
+          <div style="margin-top:4px;">${payBadge}${amtPaid}${balance}</div>
+          <div class="booking-detail" style="margin-top:6px;">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div>
+          <div class="booking-detail">${b.email||"No email"} · ${b.phone}</div>
+          ${addressLine}
+          <div class="booking-date">📅 ${b.dateKey} · Total: $${b.price||"—"}</div>
+          ${notesLine}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+          <button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button>
+          ${b.source==="phone"?`<button onclick="markPaid('${b.pkgId}','${b.ref}')" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">Mark Paid</button>`:""}
+        </div>
+      </div>`;
     list.appendChild(card);
   });
 }
