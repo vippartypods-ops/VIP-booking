@@ -137,6 +137,11 @@
     .admin-grid { grid-template-columns: 1fr; }
     .btn { padding: 12px 20px; font-size: 13px; }
   }
+
+  .admin-tab { padding:8px 16px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:rgba(255,255,255,0.45); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .admin-tab.active { border-color:#7C3AED; background:rgba(124,58,237,0.2); color:#E9D5FF; }
+  .day-toggle { padding:8px 14px; border-radius:8px; border:1.5px solid rgba(255,255,255,0.15); background:transparent; color:rgba(255,255,255,0.45); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+  .day-toggle.active { border-color:#7C3AED; background:rgba(124,58,237,0.2); color:#E9D5FF; }
 </style>
 </head>
 <body>
@@ -330,39 +335,125 @@
 ════════════════════════════════════════════════════ -->
 <div id="view-admin" class="hidden">
   <div class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
-      <div class="section-title">Manage Availability & Bookings</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:12px;">
+      <div class="section-title">Owner Dashboard</div>
       <button class="btn btn-outline" style="padding:10px 20px;font-size:12px;" onclick="adminLogout()">← Exit</button>
     </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-bottom:28px;">VIP Party Pods LLC · Manage your availability and bookings</div>
 
-    <!-- Block dates -->
-    <div class="admin-card">
-      <div class="admin-title">🚫 Block a Date (Mark Unavailable)</div>
-      <div class="admin-grid">
-        <div>
-          <label class="input-label">Package</label>
-          <select class="input" id="block-pkg"></select>
-        </div>
-        <div>
-          <label class="input-label">Date to Block</label>
-          <input class="input" type="date" id="block-date"/>
-        </div>
-        <button class="btn-block" onclick="blockDate()">Block Date</button>
+    <!-- QUICK STATS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;">
+      <div style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#A78BFA;" id="stat-total-bookings">0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Total Bookings</div>
       </div>
-      <div id="blocked-list"></div>
+      <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#34D399;" id="stat-upcoming">0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Upcoming</div>
+      </div>
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#FCD34D;" id="stat-revenue">$0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Est. Revenue</div>
+      </div>
+      <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:#F87171;" id="stat-blocked">0</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Blocked Dates</div>
+      </div>
     </div>
 
-    <!-- Bookings list -->
-    <div class="admin-title">📋 All Bookings</div>
+    <!-- AVAILABILITY CONTROLS -->
+    <div class="admin-card">
+      <div class="admin-title">🚫 Availability Controls</div>
+      <div style="margin-bottom:16px;">
+        <label class="input-label">Apply blocks to</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="block-pkg-btns"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="admin-tab active" id="tab-single" onclick="switchTab('single')">📅 Single Date</button>
+        <button class="admin-tab" id="tab-range" onclick="switchTab('range')">📆 Date Range</button>
+        <button class="admin-tab" id="tab-weekdays" onclick="switchTab('weekdays')">🗓️ Days of Week</button>
+        <button class="admin-tab" id="tab-month" onclick="switchTab('month')">📅 Whole Month</button>
+      </div>
+
+      <!-- Single date -->
+      <div id="block-panel-single">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+          <div><label class="input-label">Date to Block</label><input class="input" type="date" id="block-single-date"/></div>
+          <button class="btn-block" onclick="blockSingleDate()">Block Date</button>
+        </div>
+      </div>
+
+      <!-- Date range -->
+      <div id="block-panel-range" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;">
+          <div><label class="input-label">From Date</label><input class="input" type="date" id="block-range-start"/></div>
+          <div><label class="input-label">To Date</label><input class="input" type="date" id="block-range-end"/></div>
+          <button class="btn-block" onclick="blockDateRange()">Block Range</button>
+        </div>
+      </div>
+
+      <!-- Days of week -->
+      <div id="block-panel-weekdays" class="hidden">
+        <div style="margin-bottom:12px;">
+          <label class="input-label">Block these days every week</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+            <button class="day-toggle" id="day-0" onclick="toggleDay(0)">Sun</button>
+            <button class="day-toggle" id="day-1" onclick="toggleDay(1)">Mon</button>
+            <button class="day-toggle" id="day-2" onclick="toggleDay(2)">Tue</button>
+            <button class="day-toggle" id="day-3" onclick="toggleDay(3)">Wed</button>
+            <button class="day-toggle" id="day-4" onclick="toggleDay(4)">Thu</button>
+            <button class="day-toggle" id="day-5" onclick="toggleDay(5)">Fri</button>
+            <button class="day-toggle" id="day-6" onclick="toggleDay(6)">Sat</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button class="btn-block" style="font-size:12px;padding:10px 16px;" onclick="selectWeekdays()">Select Mon-Fri</button>
+          <button class="btn-block" style="font-size:12px;padding:10px 16px;" onclick="selectWeekends()">Select Weekends</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;">
+          <div><label class="input-label">Apply From</label><input class="input" type="date" id="block-days-start"/></div>
+          <div><label class="input-label">Apply Until</label><input class="input" type="date" id="block-days-end"/></div>
+          <button class="btn-block" onclick="blockWeekdays()">Block Days</button>
+        </div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:8px;">This blocks all selected days of the week between your chosen dates.</div>
+      </div>
+
+      <!-- Whole month -->
+      <div id="block-panel-month" class="hidden">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+          <div><label class="input-label">Select Month</label><input class="input" type="month" id="block-month"/></div>
+          <button class="btn-block" onclick="blockWholeMonth()">Block Month</button>
+        </div>
+      </div>
+
+      <div id="blocked-list" style="margin-top:16px;"></div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <button onclick="clearAllBlocked()" style="background:transparent;border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.6);padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;">Clear All Blocked Dates for Selected Package</button>
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="admin-title" style="margin:0;">📋 All Bookings</div>
+      <div style="display:flex;gap:8px;">
+        <select class="input" id="filter-pkg" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
+          <option value="all">All Packages</option>
+        </select>
+        <select class="input" id="filter-time" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
+          <option value="all">All Dates</option>
+          <option value="upcoming">Upcoming</option>
+          <option value="past">Past</option>
+        </select>
+      </div>
+    </div>
     <div id="bookings-list"></div>
     <div class="damage-note">
-      💳 To charge a customer for damages: log into <strong>stripe.com</strong> → Customers → find by name or email → Charge customer. Stripe will send them a receipt automatically.
+      💳 To charge a customer for damages: log into <strong>stripe.com</strong> → Customers → find by name or email → Charge customer. Stripe sends them a receipt automatically.
     </div>
   </div>
 </div>
 
 <script>
-// ─── DATA ─────────────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = "vipAdmin2026";
 
 const STRIPE_LINKS = {
@@ -383,7 +474,7 @@ const PACKAGES = [
 ];
 
 const POLICY_TEXT = `SETUP & TAKEDOWN
-Our team will deliver, set up, and take down all equipment. The customer must ensure adequate space (30×20×14), access, and a safe setup area free of debris, sharp objects, obstacles, and overhead power lines. If unsafe conditions are present we reserve the right to refuse setup without refund. The customer must ensure all trash and objects not belonging to VIP Party Pods are removed prior to team pickup. Customer must provide access to a reliable power source within 100ft (extension cord provided).
+Our team will deliver, set up, and take down all equipment. The customer must ensure adequate space (30x20x14), access, and a safe setup area free of debris, sharp objects, obstacles, and overhead power lines. If unsafe conditions are present we reserve the right to refuse setup without refund. The customer must ensure all trash and objects not belonging to VIP Party Pods are removed prior to team pickup. Customer must provide access to a reliable power source within 100ft (extension cord provided).
 
 EQUIPMENT USE & CARE
 Customers agree to use all equipment properly and follow all provided instructions. No sharp objects, smoking, or open flames inside or near the inflatable structure. Keep all food and drinks away from electronics (speaker, party lights) — food and drink may be placed on provided tables. Clean all spills IMMEDIATELY. LED lights, sound systems, and electronics must not be tampered with or moved. Equipment must not be used in unsafe weather conditions (high winds, heavy rain, or storms). Equipment must not be overloaded beyond recommended capacity (50 people). No climbing on walls, jumping from heights, or misuse of structures. Failure to follow safety rules may result in immediate shutdown without refund.
@@ -395,20 +486,20 @@ CARD ON FILE & DAMAGE POLICY
 A valid credit or debit card is required at booking and will be kept securely on file. By completing this booking, the customer authorizes VIP Party Pods LLC to charge the card on file for any damage, missing items, or excessive cleaning fees identified upon inspection following the rental period. If repair or replacement costs exceed $150.00, the customer agrees to pay the additional balance. No damage charge will be applied if all equipment is returned in the same condition as delivered.
 
 WEATHER POLICY
-Rentals may be rescheduled due to severe weather at VIP Party Pods' discretion. Light rain or normal conditions may not qualify for cancellation. The renter is responsible for monitoring weather during the rental period.
+Rentals may be rescheduled due to severe weather at VIP Party Pods discretion. Light rain or normal conditions may not qualify for cancellation. The renter is responsible for monitoring weather during the rental period.
 
-Mandatory Shutdown: The inflatable and all electronics must be shut down immediately if winds exceed 15–20 mph, lightning is visible or thunder is heard, heavy rain or sudden storms occur, or any unsafe ground conditions arise. During a storm, all participants must exit immediately, electronics must be powered off and unplugged, and the air pump must be turned off to deflate the tent — leave all equipment inside in the CENTER of the tent. Damage caused by weather after the renter has followed the shutdown protocol is covered by the company. Damage caused because the renter did not follow the protocol will be billed to the renter.
+Mandatory Shutdown: The inflatable and all electronics must be shut down immediately if winds exceed 15-20 mph, lightning is visible or thunder is heard, heavy rain or sudden storms occur, or any unsafe ground conditions arise. During a storm, all participants must exit immediately, electronics must be powered off and unplugged, and the air pump must be turned off to deflate the tent — leave all equipment inside in the CENTER of the tent. Damage caused by weather after the renter has followed the shutdown protocol is covered by the company. Damage caused because the renter did not follow the protocol will be billed to the renter.
 
 No Refunds for Weather: Once equipment is delivered and set up, no refunds are issued due to weather. A raincheck credit may be issued to reschedule if weather occurs before the halfway mark of your rental time.
 
 CANCELLATION & RESCHEDULING
-• 7+ days before event: full refund of any deposit or payment
-• 3–6 days before event: rain check / credit valid for 12 months, no cash refund
-• Within 48 hours of event: non-refundable
-• You may reschedule one time if done at least 72 hours before your event
-• Rescheduled events must occur within 12 months of the original date
-• Pricing may adjust if you move to a peak-season date or upgrade equipment
-• Rain check credits are valid 12 months, cannot be redeemed for cash, and are non-transferable
+- 7+ days before event: full refund of any deposit or payment
+- 3-6 days before event: rain check / credit valid for 12 months, no cash refund
+- Within 48 hours of event: non-refundable
+- You may reschedule one time if done at least 72 hours before your event
+- Rescheduled events must occur within 12 months of the original date
+- Pricing may adjust if you move to a peak-season date or upgrade equipment
+- Rain check credits are valid 12 months, cannot be redeemed for cash, and are non-transferable
 
 By checking the box below and completing this booking, you agree to all terms and policies listed in this Rental Agreement.`;
 
@@ -416,476 +507,266 @@ const DURATION_HOURS = { "4 Hours":4, "6 Hours":6, "All Night":14 };
 const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","9:30 PM"];
 const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let agreed = false;
-let selectedPkg = null;
-let selectedDuration = null;
-let selectedNerfType = null; // "Nerf" or "Nerf Laser Pro" — Battle Bash only
-let selectedDate = null;
-let selectedTime = null;
-let calYear, calMonth;
-let bookings = {}; // { pkgId: [{dateKey, startTime, duration, name, ref}] }
-let blocked = {};  // { pkgId: [dateKey, ...] }
-let currentStep = 0;
+let agreed=false, selectedPkg=null, selectedDuration=null, selectedNerfType=null, selectedDate=null, selectedTime=null, calYear, calMonth, currentStep=0;
+let bookings={}, blocked={}, selectedBlockPkg=null, selectedDays=new Set(), activeTab="single";
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = function() {
-  const now = new Date();
-  calYear = now.getFullYear();
-  calMonth = now.getMonth();
+  const now = new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
   document.getElementById("policy-text").textContent = POLICY_TEXT;
-  buildPackageGrid();
-  buildAdminPkgSelect();
-  renderStepper();
-  showStep(0);
+  buildPackageGrid(); buildAdminPkgBtns(); buildFilterPkg(); renderStepper(); showStep(0);
+  selectedBlockPkg = PACKAGES[0].id;
 };
 
-// ─── VIEWS ────────────────────────────────────────────────────────────────────
 function showView(v) {
-  document.getElementById("view-booking").classList.add("hidden");
-  document.getElementById("view-admin-login").classList.add("hidden");
-  document.getElementById("view-admin").classList.add("hidden");
-  if (v === "booking") { document.getElementById("view-booking").classList.remove("hidden"); document.querySelector(".header-sub").textContent = "Reserve Your Pod"; }
-  if (v === "admin-login") { document.getElementById("view-admin-login").classList.remove("hidden"); document.getElementById("view-admin-login").style.display = "flex"; document.querySelector(".header-sub").textContent = "Owner Dashboard"; }
-  if (v === "admin") { document.getElementById("view-admin").classList.remove("hidden"); document.querySelector(".header-sub").textContent = "Owner Dashboard"; renderAdmin(); }
+  ["view-booking","view-admin-login","view-admin"].forEach(id => document.getElementById(id).classList.add("hidden"));
+  if(v==="booking"){document.getElementById("view-booking").classList.remove("hidden");document.querySelector(".header-sub").textContent="Reserve Your Pod";}
+  if(v==="admin-login"){const el=document.getElementById("view-admin-login");el.classList.remove("hidden");el.style.display="flex";document.querySelector(".header-sub").textContent="Owner Dashboard";}
+  if(v==="admin"){document.getElementById("view-admin").classList.remove("hidden");document.querySelector(".header-sub").textContent="Owner Dashboard";renderAdmin();}
 }
 
-// ─── STEPPER ─────────────────────────────────────────────────────────────────
 function renderStepper() {
-  const s = document.getElementById("stepper");
-  const l = document.getElementById("step-labels");
-  s.innerHTML = ""; l.innerHTML = "";
-  STEP_NAMES.forEach((name, i) => {
-    const dot = document.createElement("div");
-    dot.className = "step-dot" + (i < currentStep ? " done" : i === currentStep ? " active" : "");
-    dot.textContent = i < currentStep ? "✓" : i + 1;
-    s.appendChild(dot);
-    if (i < STEP_NAMES.length - 1) {
-      const line = document.createElement("div");
-      line.className = "step-line" + (i < currentStep ? " done" : "");
-      line.style.flex = "1";
-      s.appendChild(line);
-    }
-    const lbl = document.createElement("div");
-    lbl.className = "step-label" + (i < currentStep ? " done" : i === currentStep ? " active" : "");
-    lbl.textContent = name;
-    l.appendChild(lbl);
+  const s=document.getElementById("stepper"),l=document.getElementById("step-labels");
+  s.innerHTML="";l.innerHTML="";
+  STEP_NAMES.forEach((name,i)=>{
+    const dot=document.createElement("div");dot.className="step-dot"+(i<currentStep?" done":i===currentStep?" active":"");dot.textContent=i<currentStep?"✓":i+1;s.appendChild(dot);
+    if(i<STEP_NAMES.length-1){const line=document.createElement("div");line.className="step-line"+(i<currentStep?" done":"");line.style.flex="1";s.appendChild(line);}
+    const lbl=document.createElement("div");lbl.className="step-label"+(i<currentStep?" done":i===currentStep?" active":"");lbl.textContent=name;l.appendChild(lbl);
   });
 }
 
 function showStep(n) {
-  for (let i = 0; i < STEP_NAMES.length; i++) {
-    const el = document.getElementById("step-" + i);
-    if (el) el.classList.toggle("hidden", i !== n);
-  }
-  currentStep = n;
-  renderStepper();
-  window.scrollTo(0, 0);
+  for(let i=0;i<STEP_NAMES.length;i++){const el=document.getElementById("step-"+i);if(el)el.classList.toggle("hidden",i!==n);}
+  currentStep=n;renderStepper();
+  if(n===2){renderCalendar();if(selectedDate)showTimeSection();}
+  window.scrollTo(0,0);
 }
 
 function goToStep(n) {
-  if (n === 1 && !agreed) return;
-  if (n === 2 && (!selectedPkg || !selectedDuration)) return;
-  if (n === 2 && selectedPkg === "battle-bash-pod" && !selectedNerfType) return;
-  if (n === 3 && (!selectedDate || !selectedTime)) return;
-  if (n === 4 && !infoValid()) return;
-  if (n === 4) buildSummary();
+  if(n===1&&!agreed)return;
+  if(n===2&&(!selectedPkg||!selectedDuration))return;
+  if(n===2&&selectedPkg==="battle-bash-pod"&&!selectedNerfType)return;
+  if(n===3&&(!selectedDate||!selectedTime))return;
+  if(n===4&&!infoValid())return;
+  if(n===4)buildSummary();
   showStep(n);
 }
 
-// ─── STEP 0: POLICY ───────────────────────────────────────────────────────────
-function toggleAgreed() {
-  agreed = !agreed;
-  document.getElementById("checkbox").classList.toggle("checked", agreed);
-  const btn = document.getElementById("btn-policy-next");
-  btn.className = "btn " + (agreed ? "btn-primary" : "btn-disabled");
-}
+function toggleAgreed(){agreed=!agreed;document.getElementById("checkbox").classList.toggle("checked",agreed);document.getElementById("btn-policy-next").className="btn "+(agreed?"btn-primary":"btn-disabled");}
 
-// ─── STEP 1: PACKAGES ─────────────────────────────────────────────────────────
-function buildPackageGrid() {
-  const grid = document.getElementById("package-grid");
-  grid.innerHTML = "";
-  PACKAGES.forEach(p => {
-    const card = document.createElement("div");
-    card.className = "package-card";
-    card.id = "card-" + p.id;
-    card.onclick = () => selectPackage(p.id);
-
-    const nerfSection = p.id === "battle-bash-pod" ? `
-      <div id="nerf-type-section" style="margin-top:14px;display:none;">
-        <div class="includes-label" style="margin-bottom:8px;">Choose Your Battle Style</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="duration-btn" id="nerf-btn-Nerf" onclick="selectNerfType(event,'Nerf')">
-            🎯 Nerf<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Foam Dart Guns & Ammo</span>
-          </button>
-          <button class="duration-btn" id="nerf-btn-NerfLaserPro" onclick="selectNerfType(event,'Nerf Laser Pro')">
-            ⚡ Nerf Laser Pro<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Laser Tag Guns</span>
-          </button>
-        </div>
-      </div>` : "";
-
-    card.innerHTML = `
-      <span class="package-emoji">${p.emoji}</span>
-      <div class="package-name">${p.name}</div>
-      <div class="package-sub">${p.subtitle}</div>
-      <div class="package-desc">${p.description}</div>
-      <div class="includes-label">What's Included</div>
-      ${p.includes.map(inc => `<div class="include-item"><span style="color:${p.color};font-size:10px;">●</span> ${inc}</div>`).join("")}
-      <div class="duration-grid" id="dur-${p.id}">
-        ${p.options.map(opt => `<button class="duration-btn" id="dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}" onclick="selectDuration(event,'${p.id}','${opt.label}',${opt.price},'${p.color}')">${opt.label}<br/><span style="font-size:13px;font-weight:800;">$${opt.price}</span></button>`).join("")}
-      </div>
-      ${nerfSection}`;
+function buildPackageGrid(){
+  const grid=document.getElementById("package-grid");grid.innerHTML="";
+  PACKAGES.forEach(p=>{
+    const card=document.createElement("div");card.className="package-card";card.id="card-"+p.id;card.onclick=()=>selectPackage(p.id);
+    const nerfSection=p.id==="battle-bash-pod"?`<div id="nerf-type-section" style="margin-top:14px;display:none;"><div class="includes-label" style="margin-bottom:8px;">Choose Your Battle Style</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="duration-btn" id="nerf-btn-Nerf" onclick="selectNerfType(event,'Nerf')">🎯 Nerf<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Foam Dart Guns & Ammo</span></button><button class="duration-btn" id="nerf-btn-NerfLaserPro" onclick="selectNerfType(event,'Nerf Laser Pro')">⚡ Nerf Laser Pro<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Laser Tag Guns</span></button></div></div>`:"";
+    card.innerHTML=`<span class="package-emoji">${p.emoji}</span><div class="package-name">${p.name}</div><div class="package-sub">${p.subtitle}</div><div class="package-desc">${p.description}</div><div class="includes-label">What's Included</div>${p.includes.map(inc=>`<div class="include-item"><span style="color:${p.color};font-size:10px;">●</span> ${inc}</div>`).join("")}<div class="duration-grid" id="dur-${p.id}">${p.options.map(opt=>`<button class="duration-btn" id="dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}" onclick="selectDuration(event,'${p.id}','${opt.label}',${opt.price},'${p.color}')">${opt.label}<br/><span style="font-size:13px;font-weight:800;">$${opt.price}</span></button>`).join("")}</div>${nerfSection}`;
     grid.appendChild(card);
-    if (p.options.length === 1) {
-      card.onclick = () => { selectPackage(p.id); selectDuration({stopPropagation:()=>{}}, p.id, p.options[0].label, p.options[0].price, p.color); };
-    }
+    if(p.options.length===1)card.onclick=()=>{selectPackage(p.id);selectDuration({stopPropagation:()=>{}},p.id,p.options[0].label,p.options[0].price,p.color);};
   });
 }
 
-function selectPackage(pkgId) {
-  selectedPkg = pkgId;
-  if (pkgId !== "battle-bash-pod") { selectedNerfType = null; }
-  PACKAGES.forEach(p => {
-    const card = document.getElementById("card-" + p.id);
-    const pkg = PACKAGES.find(x => x.id === p.id);
-    if (p.id === pkgId) {
-      card.style.border = `2px solid ${pkg.color}`;
-      card.style.background = `linear-gradient(135deg, rgba(${hexToRgb(pkg.color)},0.15), rgba(${hexToRgb(pkg.color)},0.05))`;
-    } else {
-      card.style.border = "2px solid rgba(255,255,255,0.08)";
-      card.style.background = "rgba(255,255,255,0.03)";
-    }
-  });
-  if (selectedDuration) {
-    const key = `${pkgId}|${selectedDuration}`;
-    if (!STRIPE_LINKS[key]) { selectedDuration = null; updatePkgNextBtn(); }
-  }
+function selectPackage(pkgId){
+  selectedPkg=pkgId;if(pkgId!=="battle-bash-pod")selectedNerfType=null;
+  PACKAGES.forEach(p=>{const card=document.getElementById("card-"+p.id),pkg=PACKAGES.find(x=>x.id===p.id);if(p.id===pkgId){card.style.border=`2px solid ${pkg.color}`;card.style.background=`linear-gradient(135deg,rgba(${hexToRgb(pkg.color)},0.15),rgba(${hexToRgb(pkg.color)},0.05))`;}else{card.style.border="2px solid rgba(255,255,255,0.08)";card.style.background="rgba(255,255,255,0.03)";}});
+  if(selectedDuration&&!STRIPE_LINKS[`${pkgId}|${selectedDuration}`]){selectedDuration=null;updatePkgNextBtn();}
   updateDatetimeSub();
 }
 
-function selectDuration(e, pkgId, label, price, color) {
-  e.stopPropagation();
-  selectPackage(pkgId);
-  selectedDuration = label;
-  selectedTime = null;
-  // Style all duration buttons
-  PACKAGES.forEach(p => p.options.forEach(opt => {
-    const btn = document.getElementById(`dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}`);
-    if (btn) { btn.style.borderColor = "rgba(255,255,255,0.15)"; btn.style.background = "transparent"; btn.style.color = "rgba(255,255,255,0.45)"; }
-  }));
-  const active = document.getElementById(`dur-btn-${pkgId}-${label.replace(/\s/g,'')}`);
-  if (active) { active.style.borderColor = color; active.style.background = `rgba(${hexToRgb(color)},0.2)`; active.style.color = "#fff"; }
-  // Show nerf type selector for Battle Bash
-  const nerfSection = document.getElementById("nerf-type-section");
-  if (nerfSection) nerfSection.style.display = pkgId === "battle-bash-pod" ? "block" : "none";
-  updatePkgNextBtn();
-  updateDatetimeSub();
+function selectDuration(e,pkgId,label,price,color){
+  e.stopPropagation();selectPackage(pkgId);selectedDuration=label;selectedTime=null;
+  PACKAGES.forEach(p=>p.options.forEach(opt=>{const btn=document.getElementById(`dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}`);if(btn){btn.style.borderColor="rgba(255,255,255,0.15)";btn.style.background="transparent";btn.style.color="rgba(255,255,255,0.45)";}}));
+  const active=document.getElementById(`dur-btn-${pkgId}-${label.replace(/\s/g,'')}`);
+  if(active){active.style.borderColor=color;active.style.background=`rgba(${hexToRgb(color)},0.2)`;active.style.color="#fff";}
+  const ns=document.getElementById("nerf-type-section");if(ns)ns.style.display=pkgId==="battle-bash-pod"?"block":"none";
+  updatePkgNextBtn();updateDatetimeSub();
 }
 
-function selectNerfType(e, type) {
-  e.stopPropagation();
-  selectedNerfType = type;
-  // Style nerf buttons
-  ["Nerf","NerfLaserPro"].forEach(id => {
-    const btn = document.getElementById("nerf-btn-" + id);
-    if (btn) { btn.style.borderColor = "rgba(255,255,255,0.15)"; btn.style.background = "transparent"; btn.style.color = "rgba(255,255,255,0.45)"; }
-  });
-  const activeId = type === "Nerf" ? "nerf-btn-Nerf" : "nerf-btn-NerfLaserPro";
-  const activeBtn = document.getElementById(activeId);
-  if (activeBtn) { activeBtn.style.borderColor = "#E8372A"; activeBtn.style.background = "rgba(232,55,42,0.2)"; activeBtn.style.color = "#fff"; }
+function selectNerfType(e,type){
+  e.stopPropagation();selectedNerfType=type;
+  ["Nerf","NerfLaserPro"].forEach(id=>{const btn=document.getElementById("nerf-btn-"+id);if(btn){btn.style.borderColor="rgba(255,255,255,0.15)";btn.style.background="transparent";btn.style.color="rgba(255,255,255,0.45)";}});
+  const ab=document.getElementById(type==="Nerf"?"nerf-btn-Nerf":"nerf-btn-NerfLaserPro");
+  if(ab){ab.style.borderColor="#E8372A";ab.style.background="rgba(232,55,42,0.2)";ab.style.color="#fff";}
   updatePkgNextBtn();
 }
 
-function updatePkgNextBtn() {
-  const btn = document.getElementById("btn-pkg-next");
-  const nerfOk = selectedPkg !== "battle-bash-pod" || selectedNerfType !== null;
-  btn.className = "btn " + (selectedPkg && selectedDuration && nerfOk ? "btn-primary" : "btn-disabled");
-}
+function updatePkgNextBtn(){const nerfOk=selectedPkg!=="battle-bash-pod"||selectedNerfType!==null;document.getElementById("btn-pkg-next").className="btn "+(selectedPkg&&selectedDuration&&nerfOk?"btn-primary":"btn-disabled");}
 
-// ─── STEP 2: DATE & TIME ──────────────────────────────────────────────────────
-function updateDatetimeSub() {
-  const sub = document.getElementById("datetime-sub");
-  if (!sub) return;
-  if (selectedDuration === "All Night") sub.textContent = "Red crossed-out dates are unavailable. All-Nighter rentals begin at 9:30 PM.";
-  else sub.textContent = `Red crossed-out dates are unavailable. Your ${selectedDuration} rental must end by 9:30 PM — only valid start times are shown.`;
-}
+function updateDatetimeSub(){const sub=document.getElementById("datetime-sub");if(!sub)return;sub.textContent=selectedDuration==="All Night"?"Red crossed-out dates are unavailable. All-Nighter rentals begin at 9:30 PM.":`Red crossed-out dates are unavailable. Your ${selectedDuration} rental must end by 9:30 PM — only valid start times are shown.`;}
 
-function changeMonth(dir) {
-  calMonth += dir;
-  if (calMonth < 0) { calMonth = 11; calYear--; }
-  if (calMonth > 11) { calMonth = 0; calYear++; }
-  renderCalendar();
-}
+function changeMonth(dir){calMonth+=dir;if(calMonth<0){calMonth=11;calYear--;}if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
 
-function renderCalendar() {
-  updateDatetimeSub();
-  const title = document.getElementById("cal-title");
-  const grid = document.getElementById("cal-grid");
-  const now = new Date();
-  const monthName = new Date(calYear, calMonth).toLocaleString("default", {month:"long", year:"numeric"});
-  title.textContent = monthName;
-  grid.innerHTML = "";
-
-  // Day labels
-  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
-    const lbl = document.createElement("div");
-    lbl.className = "cal-day-label";
-    lbl.textContent = d;
-    grid.appendChild(lbl);
-  });
-
-  // Empty cells
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  for (let i = 0; i < firstDay; i++) {
-    const empty = document.createElement("div");
-    empty.className = "cal-empty";
-    grid.appendChild(empty);
-  }
-
-  // Days
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  for (let i = 1; i <= daysInMonth; i++) {
-    const d = new Date(calYear, calMonth, i);
-    const key = toDateKey(d);
-    const isPast = (() => { const t = new Date(d); t.setHours(23,59,59); return t < now; })();
-    const isBooked = isDateUnavailable(d);
-    const isToday = d.toDateString() === now.toDateString();
-    const isSel = selectedDate && d.toDateString() === selectedDate.toDateString();
-
-    const day = document.createElement("div");
-    day.className = "cal-day" + (isPast ? " past" : isBooked ? " booked" : "") + (isToday && !isSel ? " today" : "") + (isSel ? " selected" : "");
-    day.textContent = i;
-    if (!isPast && !isBooked) {
-      day.onclick = () => { selectedDate = d; selectedTime = null; renderCalendar(); showTimeSection(); checkDTNext(); };
-    }
+function renderCalendar(){
+  updateDatetimeSub();const now=new Date();
+  document.getElementById("cal-title").textContent=new Date(calYear,calMonth).toLocaleString("default",{month:"long",year:"numeric"});
+  const grid=document.getElementById("cal-grid");grid.innerHTML="";
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=>{const lbl=document.createElement("div");lbl.className="cal-day-label";lbl.textContent=d;grid.appendChild(lbl);});
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  for(let i=0;i<firstDay;i++){const e=document.createElement("div");e.className="cal-empty";grid.appendChild(e);}
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  for(let i=1;i<=dim;i++){
+    const d=new Date(calYear,calMonth,i);
+    const isPast=(()=>{const t=new Date(d);t.setHours(23,59,59);return t<now;})();
+    const isUnavail=isDateUnavailable(d);const isToday=d.toDateString()===now.toDateString();const isSel=selectedDate&&d.toDateString()===selectedDate.toDateString();
+    const day=document.createElement("div");day.className="cal-day"+(isPast?" past":isUnavail?" booked":"")+(isToday&&!isSel?" today":"")+(isSel?" selected":"");day.textContent=i;
+    if(!isPast&&!isUnavail)day.onclick=()=>{selectedDate=d;selectedTime=null;renderCalendar();showTimeSection();checkDTNext();};
     grid.appendChild(day);
   }
 }
 
-function isDateUnavailable(d) {
-  if (!selectedPkg) return false;
-  const key = toDateKey(d);
-  if ((blocked[selectedPkg]||[]).includes(key)) return true;
-  return (bookings[selectedPkg]||[]).some(b => b.dateKey === key);
+function isDateUnavailable(d){if(!selectedPkg)return false;const key=toDateKey(d);if((blocked[selectedPkg]||[]).includes(key))return true;return(bookings[selectedPkg]||[]).some(b=>b.dateKey===key);}
+
+function showTimeSection(){
+  if(!selectedDate)return;document.getElementById("time-section").classList.remove("hidden");
+  document.getElementById("time-label").innerHTML=`Available start times for <strong style="color:#E9D5FF">${formatDate(selectedDate)}</strong>`;
+  const grid=document.getElementById("time-grid");grid.innerHTML="";
+  getAvailableTimes(selectedDuration).forEach(t=>{const btn=document.createElement("div");btn.className="time-btn"+(selectedTime===t?" selected":"");const endT=selectedDuration!=="All Night"?getEndTime(t,selectedDuration):null;btn.innerHTML=`${t}<div class="time-end">${endT?"ends "+endT:"all night"}</div>`;btn.onclick=()=>{selectedTime=t;showTimeSection();checkDTNext();};grid.appendChild(btn);});
 }
 
-function showTimeSection() {
-  if (!selectedDate) return;
-  const section = document.getElementById("time-section");
-  section.classList.remove("hidden");
-  const label = document.getElementById("time-label");
-  label.innerHTML = `Available start times for <strong style="color:#E9D5FF">${formatDate(selectedDate)}</strong>`;
-  const grid = document.getElementById("time-grid");
-  grid.innerHTML = "";
-  const times = getAvailableTimes(selectedDuration);
-  times.forEach(t => {
-    const btn = document.createElement("div");
-    btn.className = "time-btn" + (selectedTime === t ? " selected" : "");
-    const endT = selectedDuration !== "All Night" ? getEndTime(t, selectedDuration) : null;
-    btn.innerHTML = `${t}<div class="time-end">${endT ? "ends " + endT : "all night"}</div>`;
-    btn.onclick = () => { selectedTime = t; showTimeSection(); checkDTNext(); };
-    grid.appendChild(btn);
-  });
+function checkDTNext(){document.getElementById("btn-dt-next").className="btn "+(selectedDate&&selectedTime?"btn-primary":"btn-disabled");}
+function infoValid(){return["firstName","lastName","email","phone","address","city","state","zip"].every(id=>document.getElementById(id)?.value.trim());}
+function checkInfoForm(){document.getElementById("btn-info-next").className="btn "+(infoValid()?"btn-primary":"btn-disabled");}
+
+function buildSummary(){
+  const pkg=PACKAGES.find(p=>p.id===selectedPkg),dur=pkg.options.find(o=>o.label===selectedDuration);
+  document.getElementById("sum-pkg").textContent=pkg.name;
+  const nerfRow=document.getElementById("sum-nerf-row");
+  if(selectedPkg==="battle-bash-pod"&&selectedNerfType){document.getElementById("sum-nerf").textContent=selectedNerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
+  document.getElementById("sum-dur").textContent=selectedDuration;document.getElementById("sum-date").textContent=formatDate(selectedDate);document.getElementById("sum-time").textContent=selectedTime;
+  const endRow=document.getElementById("sum-end-row");
+  if(selectedDuration!=="All Night"){document.getElementById("sum-end").textContent=getEndTime(selectedTime,selectedDuration);endRow.classList.remove("hidden");}else{endRow.classList.add("hidden");}
+  document.getElementById("sum-name").textContent=`${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`;
+  document.getElementById("sum-email").textContent=document.getElementById("email").value;
+  document.getElementById("sum-phone").textContent=document.getElementById("phone").value;
+  document.getElementById("sum-address").textContent=`${document.getElementById("address").value}, ${document.getElementById("city").value}, ${document.getElementById("state").value} ${document.getElementById("zip").value}`;
+  document.getElementById("sum-total").textContent=`$${dur.price.toFixed(2)}`;
 }
 
-function checkDTNext() {
-  const btn = document.getElementById("btn-dt-next");
-  btn.className = "btn " + (selectedDate && selectedTime ? "btn-primary" : "btn-disabled");
+function handlePayment(){
+  const key=toDateKey(selectedDate),ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
+  if(!bookings[selectedPkg])bookings[selectedPkg]=[];
+  const nerfLabel=selectedPkg==="battle-bash-pod"&&selectedNerfType?` — ${selectedNerfType}`:"";
+  const price=PACKAGES.find(p=>p.id===selectedPkg).options.find(o=>o.label===selectedDuration).price;
+  bookings[selectedPkg].push({dateKey:key,startTime:selectedTime,duration:selectedDuration,nerfType:selectedNerfType,name:`${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`,email:document.getElementById("email").value,phone:document.getElementById("phone").value,ref,price});
+  showThanks(ref,key);
+  const link=STRIPE_LINKS[`${selectedPkg}|${selectedDuration}`];
+  const params=new URLSearchParams({client_reference_id:`${selectedPkg}${nerfLabel}-${key}-${ref}`});
+  setTimeout(()=>{window.open(`${link}?${params}`,"_blank");},400);
 }
 
-// Show calendar when entering step 2
-const origShowStep = showStep;
-function showStep(n) {
-  for (let i = 0; i < STEP_NAMES.length; i++) {
-    const el = document.getElementById("step-" + i);
-    if (el) el.classList.toggle("hidden", i !== n);
-  }
-  currentStep = n;
-  renderStepper();
-  if (n === 2) { renderCalendar(); if (selectedDate) showTimeSection(); }
-  window.scrollTo(0, 0);
-}
-
-// ─── STEP 3: CUSTOMER INFO ────────────────────────────────────────────────────
-function infoValid() {
-  return ["firstName","lastName","email","phone","address","city","state","zip"].every(id => document.getElementById(id)?.value.trim());
-}
-function checkInfoForm() {
-  const btn = document.getElementById("btn-info-next");
-  btn.className = "btn " + (infoValid() ? "btn-primary" : "btn-disabled");
-}
-
-// ─── STEP 4: CONFIRM & PAY ────────────────────────────────────────────────────
-function buildSummary() {
-  const pkg = PACKAGES.find(p => p.id === selectedPkg);
-  const dur = pkg.options.find(o => o.label === selectedDuration);
-  document.getElementById("sum-pkg").textContent = pkg.name;
-  // Show nerf type if battle bash
-  const nerfRow = document.getElementById("sum-nerf-row");
-  if (selectedPkg === "battle-bash-pod" && selectedNerfType) {
-    document.getElementById("sum-nerf").textContent = selectedNerfType;
-    nerfRow.style.display = "flex";
-  } else { nerfRow.style.display = "none"; }
-  document.getElementById("sum-dur").textContent = selectedDuration;
-  document.getElementById("sum-date").textContent = formatDate(selectedDate);
-  document.getElementById("sum-time").textContent = selectedTime;
-  const endRow = document.getElementById("sum-end-row");
-  if (selectedDuration !== "All Night") { document.getElementById("sum-end").textContent = getEndTime(selectedTime, selectedDuration); endRow.classList.remove("hidden"); }
-  else { endRow.classList.add("hidden"); }
-  document.getElementById("sum-name").textContent = `${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`;
-  document.getElementById("sum-email").textContent = document.getElementById("email").value;
-  document.getElementById("sum-phone").textContent = document.getElementById("phone").value;
-  document.getElementById("sum-address").textContent = `${document.getElementById("address").value}, ${document.getElementById("city").value}, ${document.getElementById("state").value} ${document.getElementById("zip").value}`;
-  document.getElementById("sum-total").textContent = `$${dur.price.toFixed(2)}`;
-}
-
-function handlePayment() {
-  const key = toDateKey(selectedDate);
-  const ref = "VIP-" + Math.random().toString(36).toUpperCase().slice(2, 8);
-  if (!bookings[selectedPkg]) bookings[selectedPkg] = [];
-  const nerfLabel = selectedPkg === "battle-bash-pod" && selectedNerfType ? ` — ${selectedNerfType}` : "";
-  bookings[selectedPkg].push({ dateKey: key, startTime: selectedTime, duration: selectedDuration, nerfType: selectedNerfType, name: `${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`, email: document.getElementById("email").value, phone: document.getElementById("phone").value, ref });
-  // Show thank you page FIRST so customer sees it
-  showThanks(ref, key);
-  // Then open Stripe in new tab after a short delay so thank you page renders first
-  const link = STRIPE_LINKS[`${selectedPkg}|${selectedDuration}`];
-  const params = new URLSearchParams({ client_reference_id: `${selectedPkg}${nerfLabel}-${key}-${ref}` });
-  setTimeout(() => { window.open(`${link}?${params}`, "_blank"); }, 400);
-}
-
-function showThanks(ref, key) {
-  const pkg = PACKAGES.find(p => p.id === selectedPkg);
-  const dur = pkg.options.find(o => o.label === selectedDuration);
-  // Hide all steps
-  for (let i = 0; i < STEP_NAMES.length; i++) {
-    const el = document.getElementById("step-" + i);
-    if (el) el.classList.add("hidden");
-  }
+function showThanks(ref,key){
+  const pkg=PACKAGES.find(p=>p.id===selectedPkg),dur=pkg.options.find(o=>o.label===selectedDuration);
+  for(let i=0;i<STEP_NAMES.length;i++){const el=document.getElementById("step-"+i);if(el)el.classList.add("hidden");}
   document.getElementById("step-thanks").classList.remove("hidden");
-  // Fill in details
-  document.getElementById("ty-pkg").textContent = pkg.name;
-  document.getElementById("ty-dur").textContent = selectedDuration;
-  document.getElementById("ty-date").textContent = formatDate(selectedDate);
-  document.getElementById("ty-time").textContent = selectedTime;
-  document.getElementById("ty-ref").textContent = ref;
-  document.getElementById("ty-total").textContent = `$${dur.price.toFixed(2)}`;
-  // Nerf type
-  const nerfRow = document.getElementById("ty-nerf-row");
-  if (selectedPkg === "battle-bash-pod" && selectedNerfType) {
-    document.getElementById("ty-nerf").textContent = selectedNerfType;
-    nerfRow.style.display = "flex";
-  } else { nerfRow.style.display = "none"; }
-  // End time
-  const endRow = document.getElementById("ty-end-row");
-  if (selectedDuration !== "All Night") {
-    document.getElementById("ty-end").textContent = getEndTime(selectedTime, selectedDuration);
-    endRow.style.display = "flex";
-  } else { endRow.style.display = "none"; }
-  // Update stepper to show all done
-  currentStep = STEP_NAMES.length;
-  renderStepper();
-  window.scrollTo(0, 0);
+  document.getElementById("ty-pkg").textContent=pkg.name;document.getElementById("ty-dur").textContent=selectedDuration;document.getElementById("ty-date").textContent=formatDate(selectedDate);document.getElementById("ty-time").textContent=selectedTime;document.getElementById("ty-ref").textContent=ref;document.getElementById("ty-total").textContent=`$${dur.price.toFixed(2)}`;
+  const nerfRow=document.getElementById("ty-nerf-row");if(selectedPkg==="battle-bash-pod"&&selectedNerfType){document.getElementById("ty-nerf").textContent=selectedNerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
+  const endRow=document.getElementById("ty-end-row");if(selectedDuration!=="All Night"){document.getElementById("ty-end").textContent=getEndTime(selectedTime,selectedDuration);endRow.style.display="flex";}else{endRow.style.display="none";}
+  currentStep=STEP_NAMES.length;renderStepper();window.scrollTo(0,0);
 }
 
-// ─── ADMIN ────────────────────────────────────────────────────────────────────
-function adminLogin() {
-  const pw = document.getElementById("admin-pw").value;
-  if (pw === ADMIN_PASSWORD) { document.getElementById("admin-error").classList.add("hidden"); showView("admin"); }
-  else { document.getElementById("admin-error").classList.remove("hidden"); }
-}
-function adminLogout() { document.getElementById("admin-pw").value = ""; showView("booking"); }
+function adminLogin(){const pw=document.getElementById("admin-pw").value;if(pw===ADMIN_PASSWORD){document.getElementById("admin-error").classList.add("hidden");showView("admin");}else{document.getElementById("admin-error").classList.remove("hidden");}}
+function adminLogout(){document.getElementById("admin-pw").value="";showView("booking");}
 
-function buildAdminPkgSelect() {
-  const sel = document.getElementById("block-pkg");
-  PACKAGES.forEach(p => { const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
-}
-
-function blockDate() {
-  const pkgId = document.getElementById("block-pkg").value;
-  const date = document.getElementById("block-date").value;
-  if (!date) return;
-  if (!blocked[pkgId]) blocked[pkgId] = [];
-  if (!blocked[pkgId].includes(date)) blocked[pkgId].push(date);
-  document.getElementById("block-date").value = "";
-  renderAdmin();
-}
-
-function unblockDate(pkgId, date) {
-  blocked[pkgId] = (blocked[pkgId]||[]).filter(d => d !== date);
-  renderAdmin();
-}
-
-function cancelBooking(pkgId, ref) {
-  bookings[pkgId] = (bookings[pkgId]||[]).filter(b => b.ref !== ref);
-  renderAdmin();
-}
-
-function renderAdmin() {
-  // Blocked dates
-  const blockedList = document.getElementById("blocked-list");
-  blockedList.innerHTML = "";
-  PACKAGES.forEach(p => {
-    const dates = blocked[p.id]||[];
-    if (!dates.length) return;
-    const section = document.createElement("div");
-    section.style.marginTop = "16px";
-    section.innerHTML = `<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;">${p.name} — Blocked</div>`;
-    const tags = document.createElement("div");
-    tags.className = "blocked-tags";
-    dates.forEach(d => {
-      tags.innerHTML += `<div class="blocked-tag">${d} <button class="blocked-tag-remove" onclick="unblockDate('${p.id}','${d}')">✕</button></div>`;
-    });
-    section.appendChild(tags);
-    blockedList.appendChild(section);
+function buildAdminPkgBtns(){
+  const wrap=document.getElementById("block-pkg-btns");
+  PACKAGES.forEach((p,i)=>{
+    const btn=document.createElement("button");btn.id="block-pkg-btn-"+p.id;btn.className="admin-tab"+(i===0?" active":"");btn.textContent=p.emoji+" "+p.name;
+    btn.onclick=()=>{selectedBlockPkg=p.id;document.querySelectorAll("#block-pkg-btns .admin-tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderAdmin();};
+    wrap.appendChild(btn);
   });
+  selectedBlockPkg=PACKAGES[0].id;
+}
 
-  // Bookings
-  const list = document.getElementById("bookings-list");
-  const all = PACKAGES.flatMap(p => (bookings[p.id]||[]).map(b => ({...b, pkgId:p.id, pkgName:p.name}))).sort((a,b) => a.dateKey.localeCompare(b.dateKey));
-  if (!all.length) { list.innerHTML = `<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">No bookings yet.</div>`; return; }
-  list.innerHTML = "";
-  all.forEach(b => {
-    const card = document.createElement("div");
-    card.className = "admin-card";
-    const endTime = b.duration !== "All Night" ? `· Ends ${getEndTime(b.startTime, b.duration)}` : "";
-    const nerfLabel = b.nerfType ? ` · ${b.nerfType}` : "";
-    card.innerHTML = `
-      <div class="booking-item">
-        <div>
-          <div class="booking-name">${b.name} <span class="booking-ref">${b.ref}</span></div>
-          <div class="booking-detail">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div>
-          <div class="booking-detail">${b.email} · ${b.phone}</div>
-          <div class="booking-date">📅 ${b.dateKey}</div>
-        </div>
-        <button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button>
-      </div>`;
+function buildFilterPkg(){const sel=document.getElementById("filter-pkg");PACKAGES.forEach(p=>{const o=document.createElement("option");o.value=p.id;o.textContent=p.name;sel.appendChild(o);});}
+
+function switchTab(tab){
+  activeTab=tab;
+  ["single","range","weekdays","month"].forEach(t=>{document.getElementById("block-panel-"+t).classList.toggle("hidden",t!==tab);document.getElementById("tab-"+t).classList.toggle("active",t===tab);});
+}
+
+function addBlock(pkgId,dateKey){if(!blocked[pkgId])blocked[pkgId]=[];if(!blocked[pkgId].includes(dateKey))blocked[pkgId].push(dateKey);}
+
+function blockSingleDate(){const date=document.getElementById("block-single-date").value;if(!date)return;addBlock(selectedBlockPkg,date);document.getElementById("block-single-date").value="";renderAdmin();}
+
+function blockDateRange(){
+  const start=document.getElementById("block-range-start").value,end=document.getElementById("block-range-end").value;
+  if(!start||!end||start>end)return;
+  let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
+  while(cur<=endDate){addBlock(selectedBlockPkg,toDateKey(cur));cur.setDate(cur.getDate()+1);}
+  document.getElementById("block-range-start").value="";document.getElementById("block-range-end").value="";renderAdmin();
+}
+
+function toggleDay(n){if(selectedDays.has(n))selectedDays.delete(n);else selectedDays.add(n);document.getElementById("day-"+n).classList.toggle("active",selectedDays.has(n));}
+function selectWeekdays(){selectedDays.clear();[1,2,3,4,5].forEach(d=>{selectedDays.add(d);document.getElementById("day-"+d).classList.add("active");});[0,6].forEach(d=>document.getElementById("day-"+d).classList.remove("active"));}
+function selectWeekends(){selectedDays.clear();[0,6].forEach(d=>{selectedDays.add(d);document.getElementById("day-"+d).classList.add("active");});[1,2,3,4,5].forEach(d=>document.getElementById("day-"+d).classList.remove("active"));}
+
+function blockWeekdays(){
+  const start=document.getElementById("block-days-start").value,end=document.getElementById("block-days-end").value;
+  if(!start||!end||!selectedDays.size)return;
+  let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
+  while(cur<=endDate){if(selectedDays.has(cur.getDay()))addBlock(selectedBlockPkg,toDateKey(cur));cur.setDate(cur.getDate()+1);}
+  document.getElementById("block-days-start").value="";document.getElementById("block-days-end").value="";renderAdmin();
+}
+
+function blockWholeMonth(){
+  const month=document.getElementById("block-month").value;if(!month)return;
+  const [year,mon]=month.split("-").map(Number);const dim=new Date(year,mon,0).getDate();
+  for(let i=1;i<=dim;i++){const d=new Date(year,mon-1,i);addBlock(selectedBlockPkg,toDateKey(d));}
+  document.getElementById("block-month").value="";renderAdmin();
+}
+
+function unblockDate(pkgId,date){blocked[pkgId]=(blocked[pkgId]||[]).filter(d=>d!==date);renderAdmin();}
+function clearAllBlocked(){if(!confirm(`Clear all blocked dates for ${PACKAGES.find(p=>p.id===selectedBlockPkg).name}?`))return;blocked[selectedBlockPkg]=[];renderAdmin();}
+function cancelBooking(pkgId,ref){if(!confirm("Cancel this booking?"))return;bookings[pkgId]=(bookings[pkgId]||[]).filter(b=>b.ref!==ref);renderAdmin();}
+
+function renderAdmin(){
+  const now=new Date();
+  const allB=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id})));
+  const upcoming=allB.filter(b=>new Date(b.dateKey+"T23:59:59")>=now);
+  const revenue=allB.reduce((sum,b)=>sum+(b.price||0),0);
+  const totalBlocked=PACKAGES.reduce((sum,p)=>sum+(blocked[p.id]||[]).length,0);
+  document.getElementById("stat-total-bookings").textContent=allB.length;
+  document.getElementById("stat-upcoming").textContent=upcoming.length;
+  document.getElementById("stat-revenue").textContent="$"+revenue.toLocaleString();
+  document.getElementById("stat-blocked").textContent=totalBlocked;
+
+  const blockedList=document.getElementById("blocked-list");
+  const dates=(blocked[selectedBlockPkg]||[]).sort();
+  if(!dates.length){blockedList.innerHTML=`<div style="font-size:12px;color:rgba(255,255,255,0.25);margin-top:12px;">No dates blocked for this package.</div>`;}
+  else{
+    blockedList.innerHTML=`<div style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px;margin-top:16px;">${PACKAGES.find(p=>p.id===selectedBlockPkg).name} — ${dates.length} Blocked Date${dates.length!==1?"s":""}</div>`;
+    const tags=document.createElement("div");tags.className="blocked-tags";
+    dates.forEach(d=>{tags.innerHTML+=`<div class="blocked-tag">${d} <button class="blocked-tag-remove" onclick="unblockDate('${selectedBlockPkg}','${d}')">✕</button></div>`;});
+    blockedList.appendChild(tags);
+  }
+
+  const filterPkg=document.getElementById("filter-pkg").value;
+  const filterTime=document.getElementById("filter-time").value;
+  let filtered=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id,pkgName:p.name})));
+  if(filterPkg!=="all")filtered=filtered.filter(b=>b.pkgId===filterPkg);
+  if(filterTime==="upcoming")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")>=now);
+  if(filterTime==="past")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")<now);
+  filtered.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
+
+  const list=document.getElementById("bookings-list");
+  if(!filtered.length){list.innerHTML=`<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">No bookings found.</div>`;return;}
+  list.innerHTML="";
+  filtered.forEach(b=>{
+    const isPast=new Date(b.dateKey+"T23:59:59")<now;
+    const card=document.createElement("div");card.className="admin-card";card.style.opacity=isPast?"0.6":"1";
+    const endTime=b.duration!=="All Night"?`· Ends ${getEndTime(b.startTime,b.duration)}`:"";
+    const nerfLabel=b.nerfType?` · ${b.nerfType}`:"";
+    const badge=isPast?`<span style="background:rgba(255,255,255,0.06);border-radius:20px;padding:2px 8px;font-size:10px;color:rgba(255,255,255,0.3);margin-left:8px;">Past</span>`:`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:8px;">Upcoming</span>`;
+    card.innerHTML=`<div class="booking-item"><div><div class="booking-name">${b.name} <span class="booking-ref">${b.ref}</span>${badge}</div><div class="booking-detail">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div><div class="booking-detail">${b.email} · ${b.phone}</div><div class="booking-date">📅 ${b.dateKey}</div></div><button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button></div>`;
     list.appendChild(card);
   });
 }
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-function toDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function formatDate(d) { return d ? d.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"}) : ""; }
-function hexToRgb(hex) { return `${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`; }
-
-function timeToMinutes(t) {
-  const [tp, period] = t.split(" "); let [h,m] = tp.split(":").map(Number);
-  if (period==="PM"&&h!==12) h+=12; if (period==="AM"&&h===12) h=0;
-  return h*60+m;
-}
-function minutesToTime(mins) {
-  const h=Math.floor(mins/60)%24, m=mins%60, period=h>=12?"PM":"AM", dH=h>12?h-12:h===0?12:h;
-  return `${dH}:${m.toString().padStart(2,"0")} ${period}`;
-}
-function getEndTime(startTime, duration) {
-  if (duration==="All Night") return "Morning pickup";
-  return minutesToTime(timeToMinutes(startTime)+DURATION_HOURS[duration]*60);
-}
-function getAvailableTimes(duration) {
-  if (duration==="All Night") return ["9:30 PM"];
-  const maxEnd = timeToMinutes("9:30 PM");
-  return ALL_TIMES.filter(t => timeToMinutes(t)+DURATION_HOURS[duration]*60 <= maxEnd);
-}
+function toDateKey(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+function formatDate(d){return d?d.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"}):""; }
+function hexToRgb(hex){return `${parseInt(hex.slice(1,3),16)},${parseInt(hex.slice(3,5),16)},${parseInt(hex.slice(5,7),16)}`;}
+function timeToMinutes(t){const [tp,period]=t.split(" ");let [h,m]=tp.split(":").map(Number);if(period==="PM"&&h!==12)h+=12;if(period==="AM"&&h===12)h=0;return h*60+m;}
+function minutesToTime(mins){const h=Math.floor(mins/60)%24,m=mins%60,period=h>=12?"PM":"AM",dH=h>12?h-12:h===0?12:h;return `${dH}:${m.toString().padStart(2,"0")} ${period}`;}
+function getEndTime(startTime,duration){if(duration==="All Night")return "Morning pickup";return minutesToTime(timeToMinutes(startTime)+DURATION_HOURS[duration]*60);}
+function getAvailableTimes(duration){if(duration==="All Night")return["9:30 PM"];const maxEnd=timeToMinutes("9:30 PM");return ALL_TIMES.filter(t=>timeToMinutes(t)+DURATION_HOURS[duration]*60<=maxEnd);}
 </script>
 </body>
 </html>
