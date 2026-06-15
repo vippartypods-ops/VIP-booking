@@ -143,6 +143,15 @@
   .day-toggle { padding:8px 14px; border-radius:8px; border:1.5px solid rgba(255,255,255,0.15); background:transparent; color:rgba(255,255,255,0.45); font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; }
   .day-toggle.active { border-color:#7C3AED; background:rgba(124,58,237,0.2); color:#E9D5FF; }
 </style>
+<meta name="theme-color" content="#07060F"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="VIP Party Pods"/>
+<meta name="application-name" content="VIP Party Pods"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.svg"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -645,13 +654,134 @@ const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM
 const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
 
 let agreed=false, selectedPkg=null, selectedDuration=null, selectedNerfType=null, selectedDate=null, selectedTime=null, calYear, calMonth, currentStep=0;
-let bookings={}, blocked={}, selectedBlockPkgs=new Set(), selectedDays=new Set(), activeTab="single";
+let selectedBlockPkgs=new Set(), selectedDays=new Set(), activeTab="single";
+
+// Persistent storage
+// ── SUPABASE DATABASE ─────────────────────────────────────────
+const SUPABASE_URL = "https://gsrwmzojojkacxpahudj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_c_2Ak6WONemgI8_EBTe_cA_uU0_TpHo";
+let db = null;
+
+function initSupabase(){
+  try {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log("Supabase connected");
+  } catch(e){ console.warn("Supabase init failed:", e); }
+}
+
+let bookings = {};
+let blocked = {};
+try { bookings = JSON.parse(localStorage.getItem("vip_bookings")||"{}"); } catch(e){}
+try { blocked = JSON.parse(localStorage.getItem("vip_blocked")||"{}"); } catch(e){}
+
+function saveLocalCache(){
+  try { localStorage.setItem("vip_bookings", JSON.stringify(bookings)); } catch(e){}
+  try { localStorage.setItem("vip_blocked", JSON.stringify(blocked)); } catch(e){}
+}
+
+async function saveData(){
+  saveLocalCache();
+  if(!db) return;
+  try {
+    await db.from("blocked_dates").delete().neq("id", 0);
+    const allBlocked = PACKAGES.flatMap(p=>(blocked[p.id]||[]).map(d=>({pkg_id:p.id, date_key:d})));
+    if(allBlocked.length > 0) await db.from("blocked_dates").insert(allBlocked);
+  } catch(e){ console.warn("Supabase blocked sync error:", e); }
+}
+
+async function saveBookingToSheet(booking){
+  saveLocalCache();
+  if(!db) return;
+  try {
+    const row = {
+      ref: booking.ref, name: booking.name, email: booking.email||"",
+      phone: booking.phone||"", address: booking.address||"",
+      pkg_id: booking.pkgId||"", pkg_name: booking.pkgName||"",
+      nerf_type: booking.nerfType||"", duration: booking.duration||"",
+      date_key: booking.dateKey||"", start_time: booking.startTime||"",
+      payment_status: booking.paymentStatus||"unpaid",
+      amount_paid: booking.amountPaid||0, price: booking.price||0,
+      notes: booking.notes||"", source: booking.source||"online"
+    };
+    const { error } = await db.from("bookings").upsert(row, {onConflict:"ref"});
+    if(error) console.warn("Supabase booking save error:", error);
+    else console.log("Booking saved:", booking.ref);
+  } catch(e){ console.warn("Supabase save error:", e); }
+}
+
+async function deleteBookingFromSheet(ref){
+  saveLocalCache();
+  if(!db) return;
+  try {
+    await db.from("bookings").delete().eq("ref", ref);
+    console.log("Booking deleted:", ref);
+  } catch(e){ console.warn("Supabase delete error:", e); }
+}
+
+async function loadFromSheets(){
+  if(!db){ console.warn("DB not ready, using localStorage"); return; }
+  try {
+    const { data: bookingRows, error: bErr } = await db.from("bookings").select("*").order("date_key");
+    if(bErr) throw bErr;
+    if(bookingRows && bookingRows.length > 0){
+      bookingRows.forEach(row => {
+        const pkgId = row.pkg_id || PACKAGES.find(p=>p.name===row.pkg_name)?.id || "";
+        if(!pkgId) return;
+        if(!bookings[pkgId]) bookings[pkgId]=[];
+        if(!bookings[pkgId].find(b=>b.ref===row.ref)){
+          bookings[pkgId].push({
+            ref:row.ref, name:row.name, email:row.email, phone:row.phone,
+            address:row.address, pkgName:row.pkg_name, nerfType:row.nerf_type,
+            duration:row.duration, dateKey:row.date_key, startTime:row.start_time,
+            paymentStatus:row.payment_status, amountPaid:parseFloat(row.amount_paid)||0,
+            price:parseFloat(row.price)||0, notes:row.notes, source:row.source
+          });
+        }
+      });
+    }
+    const { data: blockedRows, error: blErr } = await db.from("blocked_dates").select("*");
+    if(blErr) throw blErr;
+    if(blockedRows && blockedRows.length > 0){
+      blockedRows.forEach(row => {
+        if(!blocked[row.pkg_id]) blocked[row.pkg_id]=[];
+        if(!blocked[row.pkg_id].includes(row.date_key)) blocked[row.pkg_id].push(row.date_key);
+      });
+    }
+    saveLocalCache();
+    console.log("Loaded from Supabase - Bookings:", bookingRows?.length||0, "Blocked:", blockedRows?.length||0);
+    if(!document.getElementById("view-admin").classList.contains("hidden")) renderAdmin();
+  } catch(e){
+    console.warn("Supabase load failed, using localStorage:", e.message);
+  }
+}
 
 window.onload = function() {
   const now = new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
   document.getElementById("policy-text").textContent = POLICY_TEXT;
   buildPackageGrid(); buildAdminPkgBtns(); buildFilterPkg(); renderStepper(); showStep(0);
-  selectedBlockPkg = PACKAGES[0].id;
+  selectedBlockPkgs.add(PACKAGES[0].id);
+  initSupabase();
+  loadFromSheets();
+  const urlParams = new URLSearchParams(window.location.search);
+  // Check if opened via owner shortcut
+  if(urlParams.get("owner") === "true") {
+    showView("admin-login");
+  }
+  // Check if customer just returned from Stripe payment
+  if(urlParams.get("paid") === "true") {
+    const pendingBooking = JSON.parse(localStorage.getItem("vip_pending_booking")||"null");
+    if(pendingBooking) {
+      // Complete the booking
+      const pkgId = pendingBooking.pkgId;
+      if(!bookings[pkgId]) bookings[pkgId]=[];
+      bookings[pkgId].push(pendingBooking.booking);
+      saveData();
+      saveBookingToSheet(pendingBooking.booking);
+      localStorage.removeItem("vip_pending_booking");
+      // Show thank you page
+      showThanksFromData(pendingBooking);
+    }
+  }
 };
 
 function showView(v) {
@@ -788,11 +918,35 @@ function handlePayment(){
   if(!bookings[selectedPkg])bookings[selectedPkg]=[];
   const nerfLabel=selectedPkg==="battle-bash-pod"&&selectedNerfType?` — ${selectedNerfType}`:"";
   const price=PACKAGES.find(p=>p.id===selectedPkg).options.find(o=>o.label===selectedDuration).price;
-  bookings[selectedPkg].push({dateKey:key,startTime:selectedTime,duration:selectedDuration,nerfType:selectedNerfType,name:`${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`,email:document.getElementById("email").value,phone:document.getElementById("phone").value,ref,price});
-  showThanks(ref,key);
+  const pkg2=PACKAGES.find(p=>p.id===selectedPkg);
+  const newOnlineBooking={dateKey:key,startTime:selectedTime,duration:selectedDuration,nerfType:selectedNerfType,name:`${document.getElementById("firstName").value} ${document.getElementById("lastName").value}`,email:document.getElementById("email").value,phone:document.getElementById("phone").value,address:`${document.getElementById("address").value}, ${document.getElementById("city").value}, ${document.getElementById("state").value} ${document.getElementById("zip").value}`,ref,price,pkgName:pkg2.name,source:"online",paymentStatus:"stripe",amountPaid:price};
+  // Save as pending — only confirmed once they return from Stripe with ?paid=true
+  try { localStorage.setItem("vip_pending_booking", JSON.stringify({pkgId:selectedPkg, booking:newOnlineBooking, duration:selectedDuration, startTime:selectedTime, dateKey:key})); } catch(e){}
+  // Redirect to Stripe in same tab
   const link=STRIPE_LINKS[`${selectedPkg}|${selectedDuration}`];
   const params=new URLSearchParams({client_reference_id:`${selectedPkg}${nerfLabel}-${key}-${ref}`});
-  setTimeout(()=>{window.open(`${link}?${params}`,"_blank");},400);
+  window.location.href=`${link}?${params}`;
+}
+
+function showThanksFromData(pendingData){
+  const b=pendingData.booking;
+  const pkg=PACKAGES.find(p=>p.id===pendingData.pkgId);
+  const dur=pkg?.options.find(o=>o.label===b.duration);
+  // Hide all steps and booking view, show thank you
+  document.getElementById("view-booking").classList.remove("hidden");
+  for(let i=0;i<STEP_NAMES.length;i++){const el=document.getElementById("step-"+i);if(el)el.classList.add("hidden");}
+  document.getElementById("step-thanks").classList.remove("hidden");
+  document.getElementById("ty-pkg").textContent=b.pkgName||pkg?.name||"";
+  document.getElementById("ty-dur").textContent=b.duration;
+  document.getElementById("ty-date").textContent=b.dateKey;
+  document.getElementById("ty-time").textContent=b.startTime;
+  document.getElementById("ty-ref").textContent=b.ref;
+  document.getElementById("ty-total").textContent=`$${(dur?.price||b.price||0).toFixed(2)}`;
+  const nerfRow=document.getElementById("ty-nerf-row");
+  if(b.nerfType){document.getElementById("ty-nerf").textContent=b.nerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
+  const endRow=document.getElementById("ty-end-row");
+  if(b.duration!=="All Night"){document.getElementById("ty-end").textContent=getEndTime(b.startTime,b.duration);endRow.style.display="flex";}else{endRow.style.display="none";}
+  window.scrollTo(0,0);
 }
 
 function showThanks(ref,key){
@@ -972,6 +1126,8 @@ function toggleManualBooking(){
   form.classList.toggle("hidden",!isHidden);
   icon.textContent=isHidden?"－":"﹢";
 }
+
+function quickBlockWeekdays(){
   const start=document.getElementById("quick-weekday-start").value;
   const end=document.getElementById("quick-weekday-end").value;
   if(!start||!end){alert("Please pick a start and end date first.");return;}
@@ -989,6 +1145,7 @@ function toggleManualBooking(){
   const status=document.getElementById("weekday-block-status");
   status.textContent=`✅ Blocked ${count} weekdays (Mon–Thu) across all packages. Fridays remain open from 5:30 PM.`;
   status.style.color="#34D399";
+  saveData();
   renderAdmin();
 }
 
@@ -1003,20 +1160,21 @@ function quickUnblockWeekdays(){
   const status=document.getElementById("weekday-block-status");
   status.textContent="✅ All Monday–Thursday blocks removed. Weekdays are now open for booking.";
   status.style.color="#34D399";
+  saveData();
   renderAdmin();
 }
 
 function addBlock(pkgId,dateKey){if(!blocked[pkgId])blocked[pkgId]=[];if(!blocked[pkgId].includes(dateKey))blocked[pkgId].push(dateKey);}
 function addBlockAll(dateKey){selectedBlockPkgs.forEach(pkgId=>addBlock(pkgId,dateKey));}
 
-function blockSingleDate(){const date=document.getElementById("block-single-date").value;if(!date)return;addBlockAll(date);document.getElementById("block-single-date").value="";renderAdmin();}
+function blockSingleDate(){const date=document.getElementById("block-single-date").value;if(!date)return;addBlockAll(date);document.getElementById("block-single-date").value="";saveData();renderAdmin();}
 
 function blockDateRange(){
   const start=document.getElementById("block-range-start").value,end=document.getElementById("block-range-end").value;
   if(!start||!end||start>end)return;
   let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
   while(cur<=endDate){addBlockAll(toDateKey(cur));cur.setDate(cur.getDate()+1);}
-  document.getElementById("block-range-start").value="";document.getElementById("block-range-end").value="";renderAdmin();
+  document.getElementById("block-range-start").value="";document.getElementById("block-range-end").value="";saveData();renderAdmin();
 }
 
 function toggleDay(n){if(selectedDays.has(n))selectedDays.delete(n);else selectedDays.add(n);document.getElementById("day-"+n).classList.toggle("active",selectedDays.has(n));}
@@ -1028,24 +1186,32 @@ function blockWeekdays(){
   if(!start||!end||!selectedDays.size)return;
   let cur=new Date(start+"T12:00:00");const endDate=new Date(end+"T12:00:00");
   while(cur<=endDate){if(selectedDays.has(cur.getDay()))addBlockAll(toDateKey(cur));cur.setDate(cur.getDate()+1);}
-  document.getElementById("block-days-start").value="";document.getElementById("block-days-end").value="";renderAdmin();
+  document.getElementById("block-days-start").value="";document.getElementById("block-days-end").value="";saveData();renderAdmin();
 }
 
 function blockWholeMonth(){
   const month=document.getElementById("block-month").value;if(!month)return;
   const [year,mon]=month.split("-").map(Number);const dim=new Date(year,mon,0).getDate();
   for(let i=1;i<=dim;i++){const d=new Date(year,mon-1,i);addBlockAll(toDateKey(d));}
-  document.getElementById("block-month").value="";renderAdmin();
+  document.getElementById("block-month").value="";saveData();renderAdmin();
 }
 
-function unblockDate(pkgId,date){blocked[pkgId]=(blocked[pkgId]||[]).filter(d=>d!==date);renderAdmin();renderBlockedQuickView();}
+function unblockDate(pkgId,date){blocked[pkgId]=(blocked[pkgId]||[]).filter(d=>d!==date);saveData();renderAdmin();renderBlockedQuickView();}
 function clearAllBlocked(){
   const names=[...selectedBlockPkgs].map(id=>PACKAGES.find(p=>p.id===id).name).join(", ");
   if(!confirm(`Clear all blocked dates for: ${names}?`))return;
   selectedBlockPkgs.forEach(pkgId=>{blocked[pkgId]=[];});
   renderAdmin();
 }
-function cancelBooking(pkgId,ref){if(!confirm("Cancel this booking?"))return;bookings[pkgId]=(bookings[pkgId]||[]).filter(b=>b.ref!==ref);renderAdmin();}
+function confirmMarkPaid(pkgId,ref,method){
+  const booking=bookings[pkgId]?.find(b=>b.ref===ref);
+  if(booking){booking.paymentStatus=method;booking.amountPaid=booking.price||0;}
+  saveData();
+  if(booking)saveBookingToSheet(booking);
+  renderAdmin();
+}
+
+function cancelBooking(pkgId,ref){if(!confirm("Cancel this booking?"))return;bookings[pkgId]=(bookings[pkgId]||[]).filter(b=>b.ref!==ref);deleteBookingFromSheet(ref);saveData();renderAdmin();}
 
 function markPaid(pkgId,ref){
   const methods=["cash","check","stripe"];
@@ -1175,8 +1341,10 @@ function renderAdmin(){
     else if(ps==="stripe") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Stripe</span>`;
     else if(ps==="promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Promo — Write Off</span>`;
     else if(ps==="partial-promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Partial Promo</span>`;
-    const amtPaid=b.amountPaid>0?`<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:4px;">($${b.amountPaid} paid)</span>`:"";
-    const balance=b.price&&(b.amountPaid||0)<b.price?`<span style="color:#F87171;font-size:11px;margin-left:4px;">Balance owed: $${(b.price-(b.amountPaid||0)).toFixed(2)}</span>`:"";
+    const isPromo=b.paymentStatus==="promo"||b.paymentStatus==="partial-promo";
+    const isPaid=b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe";
+    const amtPaid=isPaid&&b.amountPaid>0?`<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:4px;">($${b.amountPaid} paid)</span>`:"";
+    const balance=!isPromo&&!isPaid&&b.price?`<span style="color:#F87171;font-size:11px;margin-left:4px;">Balance owed: $${(b.price-(b.amountPaid||0)).toFixed(2)}</span>`:"";
     const notesLine=b.notes?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic;">📝 ${b.notes}</div>`:"";
     const addressLine=b.address?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">📍 ${b.address}</div>`:"";
     card.innerHTML=`
