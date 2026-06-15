@@ -1,0 +1,55 @@
+{
+  "name": "VIP Party Pods",
+  "short_name": "VIP Pods",
+  "description": "Book your VIP Party Pod \u2014 Inflatable Nightclub Rentals",
+  "start_url": "/VIP-booking/",
+  "scope": "/VIP-booking/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07060F",
+  "theme_color": "#7C3AED",
+  "icons": [
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-192.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "entertainment",
+    "lifestyle"
+  ],
+  "shortcuts": [
+    {
+      "name": "Book Now",
+      "short_name": "Book",
+      "description": "Book a VIP Party Pod",
+      "url": "/VIP-booking/",
+      "icons": [
+        {
+          "src": "icon-192.svg",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Owner Dashboard",
+      "short_name": "Dashboard",
+      "description": "Manage bookings and availability",
+      "url": "/VIP-booking/?owner=true",
+      "icons": [
+        {
+          "src": "icon-192.svg",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
