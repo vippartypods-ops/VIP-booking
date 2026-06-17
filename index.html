@@ -160,6 +160,7 @@
   <div style="position:relative;">
     <div class="header-logo">VIP Party Pods</div>
     <div class="header-sub">Reserve Your Pod</div>
+  <div style="position:absolute;left:20px;top:50%;transform:translateY(-50%);font-size:9px;color:rgba(255,255,255,0.15);">v3.0</div>
     <button class="owner-link" onclick="showView('admin-login')">OWNER</button>
   </div>
 </div>
@@ -495,9 +496,10 @@
           <option value="all">All Packages</option>
         </select>
         <select class="input" id="filter-time" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
-          <option value="all">All Dates</option>
           <option value="upcoming">Upcoming</option>
-          <option value="past">Past</option>
+          <option value="all">All Dates</option>
+          <option value="past">Past Parties</option>
+          <option value="completed">✅ Completed</option>
         </select>
         <select class="input" id="filter-payment" style="padding:8px 12px;font-size:12px;width:auto;" onchange="renderAdmin()">
           <option value="all">All Payment</option>
@@ -659,14 +661,22 @@ let selectedBlockPkgs=new Set(), selectedDays=new Set(), activeTab="single";
 // Persistent storage
 // ── SUPABASE DATABASE ─────────────────────────────────────────
 const SUPABASE_URL = "https://gsrwmzojojkacxpahudj.supabase.co";
-const SUPABASE_KEY = "sb_publishable_c_2Ak6WONemgI8_EBTe_cA_uU0_TpHo";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzcndtem9qb2prYWN4cGFodWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Njg2MzUsImV4cCI6MjA5NzA0NDYzNX0.VhMPVeDrrW525Y6FaP0CjJe0zrBnB7keV54w9CMrI40";
 let db = null;
 
 function initSupabase(){
   try {
+    if(typeof window.supabase === "undefined" || !window.supabase){
+      console.warn("Supabase library not loaded - using localStorage only");
+      db = null;
+      return;
+    }
     db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log("Supabase connected");
-  } catch(e){ console.warn("Supabase init failed:", e); }
+    console.log("✅ Supabase connected");
+  } catch(e){
+    console.warn("Supabase init failed:", e);
+    db = null;
+  }
 }
 
 let bookings = {};
@@ -683,47 +693,112 @@ async function saveData(){
   saveLocalCache();
   if(!db) return;
   try {
-    await db.from("blocked_dates").delete().neq("id", 0);
+    const base = SUPABASE_URL + "/rest/v1/";
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal"
+    };
+    // Delete all blocked dates then reinsert
+    await fetch(base + "blocked_dates?id=neq.0", {method:"DELETE", headers});
     const allBlocked = PACKAGES.flatMap(p=>(blocked[p.id]||[]).map(d=>({pkg_id:p.id, date_key:d})));
-    if(allBlocked.length > 0) await db.from("blocked_dates").insert(allBlocked);
-  } catch(e){ console.warn("Supabase blocked sync error:", e); }
+    if(allBlocked.length > 0){
+      await fetch(base + "blocked_dates", {method:"POST", headers, body:JSON.stringify(allBlocked)});
+    }
+    console.log("✅ Blocked dates saved to Supabase");
+  } catch(e){ console.warn("Supabase blocked sync error:", e.message); }
 }
 
 async function saveBookingToSheet(booking){
   saveLocalCache();
   if(!db) return;
   try {
-    const row = {
-      ref: booking.ref, name: booking.name, email: booking.email||"",
-      phone: booking.phone||"", address: booking.address||"",
-      pkg_id: booking.pkgId||"", pkg_name: booking.pkgName||"",
-      nerf_type: booking.nerfType||"", duration: booking.duration||"",
-      date_key: booking.dateKey||"", start_time: booking.startTime||"",
-      payment_status: booking.paymentStatus||"unpaid",
-      amount_paid: booking.amountPaid||0, price: booking.price||0,
-      notes: booking.notes||"", source: booking.source||"online"
+    const base = SUPABASE_URL + "/rest/v1/";
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      "Prefer": "resolution=merge-duplicates,return=minimal"
     };
-    const { error } = await db.from("bookings").upsert(row, {onConflict:"ref"});
-    if(error) console.warn("Supabase booking save error:", error);
-    else console.log("Booking saved:", booking.ref);
-  } catch(e){ console.warn("Supabase save error:", e); }
+    // Find pkg_id from pkgName if not directly provided
+    const pkgId = booking.pkgId || booking.pkg_id ||
+      PACKAGES.find(p=>p.name===booking.pkgName)?.id ||
+      PACKAGES.find(p=>p.name===booking.pkg_name)?.id || "";
+    const row = {
+      ref: booking.ref,
+      name: booking.name,
+      email: booking.email||"",
+      phone: booking.phone||"",
+      address: booking.address||"",
+      pkg_id: pkgId,
+      pkg_name: booking.pkgName||booking.pkg_name||"",
+      nerf_type: booking.nerfType||"",
+      duration: booking.duration||"",
+      date_key: booking.dateKey||"",
+      start_time: booking.startTime||"",
+      payment_status: booking.paymentStatus||"unpaid",
+      amount_paid: booking.amountPaid||0,
+      price: booking.price||0,
+      notes: booking.notes||"",
+      source: booking.source||"online",
+      completed: booking.completed||false,
+      completed_at: booking.completedAt||""
+    };
+    const res = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(row)});
+    if(res.ok) console.log("✅ Booking saved to Supabase:", booking.ref);
+    else {
+      const err = await res.text();
+      console.warn("Supabase booking save failed:", res.status, err);
+    }
+  } catch(e){ console.warn("Supabase save error:", e.message); }
 }
 
 async function deleteBookingFromSheet(ref){
   saveLocalCache();
   if(!db) return;
   try {
-    await db.from("bookings").delete().eq("ref", ref);
-    console.log("Booking deleted:", ref);
-  } catch(e){ console.warn("Supabase delete error:", e); }
+    const base = SUPABASE_URL + "/rest/v1/";
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    };
+    const res = await fetch(base + "bookings?ref=eq." + encodeURIComponent(ref), {method:"DELETE", headers});
+    if(res.ok) console.log("✅ Booking deleted from Supabase:", ref);
+    else console.warn("Supabase delete failed:", res.status);
+  } catch(e){ console.warn("Supabase delete error:", e.message); }
 }
 
 async function loadFromSheets(){
-  if(!db){ console.warn("DB not ready, using localStorage"); return; }
+  // First load from localStorage cache instantly
   try {
-    const { data: bookingRows, error: bErr } = await db.from("bookings").select("*").order("date_key");
-    if(bErr) throw bErr;
+    const cachedBookings = localStorage.getItem("vip_bookings");
+    const cachedBlocked = localStorage.getItem("vip_blocked");
+    if(cachedBookings) bookings = JSON.parse(cachedBookings);
+    if(cachedBlocked) blocked = JSON.parse(cachedBlocked);
+    console.log("✅ Loaded from localStorage cache");
+    if(!document.getElementById("view-admin").classList.contains("hidden")) renderAdmin();
+  } catch(e){ console.warn("localStorage load error:", e.message); }
+
+  // Then try to sync from Supabase in background
+  if(!db) return;
+  try {
+    const base = SUPABASE_URL + "/rest/v1/";
+    const headers = {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json"
+    };
+
+    // Load bookings
+    const bRes = await fetch(base + "bookings?select=*&order=date_key", {headers});
+    if(!bRes.ok) throw new Error("Bookings fetch failed: " + bRes.status);
+    const bookingRows = await bRes.json();
+
     if(bookingRows && bookingRows.length > 0){
+      // Reset and reload from Supabase (source of truth)
+      bookings = {};
       bookingRows.forEach(row => {
         const pkgId = row.pkg_id || PACKAGES.find(p=>p.name===row.pkg_name)?.id || "";
         if(!pkgId) return;
@@ -734,55 +809,73 @@ async function loadFromSheets(){
             address:row.address, pkgName:row.pkg_name, nerfType:row.nerf_type,
             duration:row.duration, dateKey:row.date_key, startTime:row.start_time,
             paymentStatus:row.payment_status, amountPaid:parseFloat(row.amount_paid)||0,
-            price:parseFloat(row.price)||0, notes:row.notes, source:row.source
+            price:parseFloat(row.price)||0, notes:row.notes, source:row.source,
+            completed:row.completed||false, completedAt:row.completed_at||""
           });
         }
       });
     }
-    const { data: blockedRows, error: blErr } = await db.from("blocked_dates").select("*");
-    if(blErr) throw blErr;
+
+    // Load blocked dates
+    const blRes = await fetch(base + "blocked_dates?select=*", {headers});
+    if(!blRes.ok) throw new Error("Blocked fetch failed: " + blRes.status);
+    const blockedRows = await blRes.json();
+
     if(blockedRows && blockedRows.length > 0){
+      blocked = {};
       blockedRows.forEach(row => {
         if(!blocked[row.pkg_id]) blocked[row.pkg_id]=[];
         if(!blocked[row.pkg_id].includes(row.date_key)) blocked[row.pkg_id].push(row.date_key);
       });
     }
+
     saveLocalCache();
-    console.log("Loaded from Supabase - Bookings:", bookingRows?.length||0, "Blocked:", blockedRows?.length||0);
+    console.log("✅ Synced from Supabase - Bookings:", bookingRows?.length||0, "Blocked:", blockedRows?.length||0);
     if(!document.getElementById("view-admin").classList.contains("hidden")) renderAdmin();
+    // Refresh calendar if on date step
+    if(document.getElementById("step-2") && !document.getElementById("step-2").classList.contains("hidden")) renderCalendar();
   } catch(e){
-    console.warn("Supabase load failed, using localStorage:", e.message);
+    console.warn("Supabase sync failed, using localStorage:", e.message);
   }
 }
 
 window.onload = function() {
-  const now = new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
-  document.getElementById("policy-text").textContent = POLICY_TEXT;
-  buildPackageGrid(); buildAdminPkgBtns(); buildFilterPkg(); renderStepper(); showStep(0);
-  selectedBlockPkgs.add(PACKAGES[0].id);
-  initSupabase();
-  loadFromSheets();
-  const urlParams = new URLSearchParams(window.location.search);
-  // Check if opened via owner shortcut
-  if(urlParams.get("owner") === "true") {
-    showView("admin-login");
-  }
-  // Check if customer just returned from Stripe payment
-  if(urlParams.get("paid") === "true") {
-    const pendingBooking = JSON.parse(localStorage.getItem("vip_pending_booking")||"null");
-    if(pendingBooking) {
-      // Complete the booking
-      const pkgId = pendingBooking.pkgId;
-      if(!bookings[pkgId]) bookings[pkgId]=[];
-      bookings[pkgId].push(pendingBooking.booking);
-      saveData();
-      saveBookingToSheet(pendingBooking.booking);
-      localStorage.removeItem("vip_pending_booking");
-      // Show thank you page
-      showThanksFromData(pendingBooking);
+  // Core page init - must always run
+  try {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    document.getElementById("policy-text").textContent = POLICY_TEXT;
+    buildPackageGrid();
+    buildAdminPkgBtns();
+    buildFilterPkg();
+    renderStepper();
+    showStep(0);
+    selectedBlockPkgs.add(PACKAGES[0].id);
+  } catch(e){ console.error("Core init error:", e); }
+
+  // Database - runs separately so failures dont break the page
+  try { initSupabase(); } catch(e){ console.warn("Supabase init error:", e); }
+  setTimeout(function(){ try { loadFromSheets(); } catch(e){ console.warn("Load error:", e); } }, 100);
+
+  // URL param handling
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get("owner") === "true") { showView("admin-login"); }
+    if(urlParams.get("paid") === "true") {
+      const pendingBooking = JSON.parse(localStorage.getItem("vip_pending_booking")||"null");
+      if(pendingBooking) {
+        const pkgId = pendingBooking.pkgId;
+        if(!bookings[pkgId]) bookings[pkgId] = [];
+        bookings[pkgId].push(pendingBooking.booking);
+        saveData();
+        saveBookingToSheet(pendingBooking.booking);
+        localStorage.removeItem("vip_pending_booking");
+        showThanksFromData(pendingBooking);
+      }
     }
-  }
-};
+  } catch(e){ console.warn("URL param error:", e); }
+};;
 
 function showView(v) {
   ["view-booking","view-admin-login","view-admin"].forEach(id => document.getElementById(id).classList.add("hidden"));
@@ -1213,15 +1306,29 @@ function confirmMarkPaid(pkgId,ref,method){
 
 function cancelBooking(pkgId,ref){if(!confirm("Cancel this booking?"))return;bookings[pkgId]=(bookings[pkgId]||[]).filter(b=>b.ref!==ref);deleteBookingFromSheet(ref);saveData();renderAdmin();}
 
-function markPaid(pkgId,ref){
-  const methods=["cash","check","stripe"];
-  const choice=prompt("Mark as paid by:\n1. Cash\n2. Check\n3. Stripe/Card\n\nEnter 1, 2, or 3:");
-  if(!choice)return;
-  const method=methods[parseInt(choice)-1];
-  if(!method){alert("Invalid choice.");return;}
+function completeBooking(pkgId,ref){
+  if(!confirm("Mark this party as completed? It will move to your Completed section."))return;
   const booking=bookings[pkgId]?.find(b=>b.ref===ref);
-  if(booking){booking.paymentStatus=method;booking.amountPaid=booking.price||0;}
+  if(booking){ booking.completed=true; booking.completedAt=new Date().toLocaleDateString(); }
+  saveData();
+  saveBookingToSheet({...booking});
   renderAdmin();
+}
+
+function markPaid(pkgId,ref){
+  // Find the button container and replace with inline options
+  const btnId=`mark-paid-${ref}`;
+  const container=document.getElementById(btnId);
+  if(!container)return;
+  container.innerHTML=`
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:4px;">
+      <span style="font-size:11px;color:rgba(255,255,255,0.5);">Mark as:</span>
+      <button onclick="confirmMarkPaid('${pkgId}','${ref}','cash')" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">💵 Cash</button>
+      <button onclick="confirmMarkPaid('${pkgId}','${ref}','check')" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">📝 Check</button>
+      <button onclick="confirmMarkPaid('${pkgId}','${ref}','stripe')" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">💳 Stripe</button>
+      <button onclick="confirmMarkPaid('${pkgId}','${ref}','promo')" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.15);color:#A78BFA;font-size:11px;font-weight:700;cursor:pointer;">🎁 Write Off / Promo</button>
+      <button onclick="renderAdmin()" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.35);font-size:11px;cursor:pointer;">✕ Cancel</button>
+    </div>`;
 }
 
 function setStatFilter(type){
@@ -1312,26 +1419,39 @@ function renderAdmin(){
   const filterPkg=document.getElementById("filter-pkg").value;
   const filterTime=document.getElementById("filter-time").value;
   const filterPayment=document.getElementById("filter-payment").value;
-  let filtered=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id,pkgName:p.name})));
+  let filtered=PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({...b,pkgId:p.id,pkgName:b.pkgName||p.name})));
   if(filterPkg!=="all")filtered=filtered.filter(b=>b.pkgId===filterPkg);
-  if(filterTime==="upcoming")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")>=now);
-  if(filterTime==="past")filtered=filtered.filter(b=>new Date(b.dateKey+"T23:59:59")<now);
+  // Default = upcoming only, hide completed unless viewing completed tab
+  if(filterTime==="upcoming")filtered=filtered.filter(b=>!b.completed&&new Date(b.dateKey+"T23:59:59")>=now);
+  if(filterTime==="past")filtered=filtered.filter(b=>!b.completed&&new Date(b.dateKey+"T23:59:59")<now);
+  if(filterTime==="completed")filtered=filtered.filter(b=>b.completed===true);
+  if(filterTime==="all")filtered=filtered.filter(b=>!b.completed);
   if(filterPayment==="unpaid")filtered=filtered.filter(b=>b.paymentStatus==="unpaid"||b.paymentStatus==="deposit"||!b.paymentStatus);
   if(filterPayment==="paid")filtered=filtered.filter(b=>b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe");
   if(filterPayment==="promo")filtered=filtered.filter(b=>b.paymentStatus==="promo"||b.paymentStatus==="partial-promo");
   filtered.sort((a,b)=>a.dateKey.localeCompare(b.dateKey));
 
   const list=document.getElementById("bookings-list");
-  if(!filtered.length){list.innerHTML=`<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">No bookings found.</div>`;return;}
+  if(!filtered.length){
+    const msg = filterTime==="completed" ? "No completed parties yet." : filterTime==="upcoming" ? "No upcoming bookings." : "No bookings found.";
+    list.innerHTML=`<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">${msg}</div>`;
+    return;
+  }
   list.innerHTML="";
   filtered.forEach(b=>{
     const isPast=new Date(b.dateKey+"T23:59:59")<now;
-    const card=document.createElement("div");card.className="admin-card";card.style.opacity=isPast?"0.6":"1";
+    const isCompleted=b.completed===true;
+    const card=document.createElement("div");
+    card.className="admin-card";
+    card.style.opacity=isCompleted?"0.7":isPast?"0.6":"1";
+    if(isCompleted) card.style.borderColor="rgba(16,185,129,0.3)";
     const endTime=b.duration!=="All Night"?`· Ends ${getEndTime(b.startTime,b.duration)}`:"";
     const nerfLabel=b.nerfType?` · ${b.nerfType}`:"";
-    const timeBadge=isPast?`<span style="background:rgba(255,255,255,0.06);border-radius:20px;padding:2px 8px;font-size:10px;color:rgba(255,255,255,0.3);margin-left:6px;">Past</span>`:`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">Upcoming</span>`;
+    let timeBadge="";
+    if(isCompleted) timeBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Completed ${b.completedAt||""}</span>`;
+    else if(isPast) timeBadge=`<span style="background:rgba(255,255,255,0.06);border-radius:20px;padding:2px 8px;font-size:10px;color:rgba(255,255,255,0.3);margin-left:6px;">Past</span>`;
+    else timeBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">Upcoming</span>`;
     const sourceBadge=b.source==="phone"?`<span style="background:rgba(14,165,233,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#38BDF8;margin-left:6px;">📞 Phone</span>`:`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🌐 Online</span>`;
-    // Payment badge
     let payBadge="";
     const ps=b.paymentStatus;
     if(!ps||ps==="unpaid") payBadge=`<span style="background:rgba(239,68,68,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#F87171;margin-left:6px;">💰 Unpaid</span>`;
@@ -1341,12 +1461,15 @@ function renderAdmin(){
     else if(ps==="stripe") payBadge=`<span style="background:rgba(16,185,129,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#34D399;margin-left:6px;">✅ Paid — Stripe</span>`;
     else if(ps==="promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Promo — Write Off</span>`;
     else if(ps==="partial-promo") payBadge=`<span style="background:rgba(167,139,250,0.15);border-radius:20px;padding:2px 8px;font-size:10px;color:#A78BFA;margin-left:6px;">🎁 Partial Promo</span>`;
-    const isPromo=b.paymentStatus==="promo"||b.paymentStatus==="partial-promo";
-    const isPaid=b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe";
+    const isPromo=ps==="promo"||ps==="partial-promo";
+    const isPaid=ps==="cash"||ps==="check"||ps==="stripe";
     const amtPaid=isPaid&&b.amountPaid>0?`<span style="color:rgba(255,255,255,0.4);font-size:11px;margin-left:4px;">($${b.amountPaid} paid)</span>`:"";
     const balance=!isPromo&&!isPaid&&b.price?`<span style="color:#F87171;font-size:11px;margin-left:4px;">Balance owed: $${(b.price-(b.amountPaid||0)).toFixed(2)}</span>`:"";
     const notesLine=b.notes?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;font-style:italic;">📝 ${b.notes}</div>`:"";
     const addressLine=b.address?`<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">📍 ${b.address}</div>`:"";
+    const totalDisplay=isPromo?`<span style="color:#A78BFA;">Complimentary</span>`:`$${b.price||"—"}`;
+    const showMarkPaid=b.source==="phone"&&!isPaid&&!isPromo&&!isCompleted;
+    const showComplete=!isCompleted;
     card.innerHTML=`
       <div class="booking-item">
         <div style="flex:1;">
@@ -1355,12 +1478,13 @@ function renderAdmin(){
           <div class="booking-detail" style="margin-top:6px;">${b.pkgName}${nerfLabel} · ${b.duration} · Starts ${b.startTime} ${endTime}</div>
           <div class="booking-detail">${b.email||"No email"} · ${b.phone}</div>
           ${addressLine}
-          <div class="booking-date">📅 ${b.dateKey} · Total: $${b.price||"—"}</div>
+          <div class="booking-date">📅 ${b.dateKey} · Total: ${totalDisplay}</div>
           ${notesLine}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-          <button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button>
-          ${b.source==="phone"?`<button onclick="markPaid('${b.pkgId}','${b.ref}')" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">Mark Paid</button>`:""}
+          ${showComplete?`<button onclick="completeBooking('${b.pkgId}','${b.ref}')" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">✅ Complete</button>`:""}
+          ${showMarkPaid?`<div id="mark-paid-${b.ref}"><button onclick="markPaid('${b.pkgId}','${b.ref}')" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#34D399;font-size:11px;font-weight:700;cursor:pointer;">Mark Paid</button></div>`:""}
+          ${!isCompleted?`<button class="btn-cancel" onclick="cancelBooking('${b.pkgId}','${b.ref}')">Cancel</button>`:""}
         </div>
       </div>`;
     list.appendChild(card);
