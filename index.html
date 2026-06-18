@@ -712,62 +712,54 @@ async function saveData(){
 }
 
 async function saveBookingToSheet(booking){
+  // Mirrors saveData() exactly: delete everything, then reinsert everything fresh.
+  // This is the same pattern that works reliably for blocked_dates.
+  // NOTE: uses raw fetch() directly, not the Supabase client object,
+  // so this does NOT depend on initSupabase() having succeeded.
   saveLocalCache();
-  if(!db) { console.warn("⚠️ Cannot save booking - db is null"); return; }
   try {
     const base = SUPABASE_URL + "/rest/v1/";
     const headers = {
       "apikey": SUPABASE_KEY,
       "Authorization": "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json",
-      // merge-duplicates tells Postgres: if a row with this ref already exists, update it;
-      // otherwise insert it. This does the job in ONE request instead of a
-      // separate DELETE-then-INSERT, which was causing problems when there was
-      // no existing row to delete.
-      "Prefer": "resolution=merge-duplicates,return=minimal"
+      "Prefer": "return=minimal"
     };
-    const pkgId = booking.pkgId || booking.pkg_id ||
-      PACKAGES.find(p=>p.name===booking.pkgName)?.id ||
-      PACKAGES.find(p=>p.name===booking.pkg_name)?.id || "";
-    const row = {
-      ref: booking.ref,
-      name: booking.name,
-      email: booking.email||"",
-      phone: booking.phone||"",
-      address: booking.address||"",
-      pkg_id: pkgId,
-      pkg_name: booking.pkgName||booking.pkg_name||"",
-      nerf_type: booking.nerfType||"",
-      duration: booking.duration||"",
-      date_key: booking.dateKey||"",
-      start_time: booking.startTime||"",
-      payment_status: booking.paymentStatus||"unpaid",
-      amount_paid: booking.amountPaid||0,
-      price: booking.price||0,
-      notes: booking.notes||"",
-      source: booking.source||"online",
-      completed: booking.completed||false,
-      completed_at: booking.completedAt||""
-    };
-    console.log("🔍 Attempting to upsert booking row:", row);
-
-    let res;
-    try {
-      res = await fetch(base + "bookings?on_conflict=ref", {method:"POST", headers, body:JSON.stringify(row)});
-    } catch(postErr){
-      console.error("🔴 RAW FETCH ERROR on upsert:", postErr.name, postErr.message, postErr);
-      throw postErr;
+    console.log("🔍 saveBookingToSheet starting, bookings in memory:", JSON.stringify(bookings).length, "chars");
+    // Delete all bookings then reinsert everything from current local state
+    const delRes = await fetch(base + "bookings?id=neq.0", {method:"DELETE", headers});
+    console.log("🔍 Delete-all bookings status:", delRes.status);
+    const allBookings = PACKAGES.flatMap(p=>(bookings[p.id]||[]).map(b=>({
+      ref: b.ref,
+      name: b.name,
+      email: b.email||"",
+      phone: b.phone||"",
+      address: b.address||"",
+      pkg_id: p.id,
+      pkg_name: b.pkgName||p.name,
+      nerf_type: b.nerfType||"",
+      duration: b.duration||"",
+      date_key: b.dateKey||"",
+      start_time: b.startTime||"",
+      payment_status: b.paymentStatus||"unpaid",
+      amount_paid: b.amountPaid||0,
+      price: b.price||0,
+      notes: b.notes||"",
+      source: b.source||"online",
+      completed: b.completed||false,
+      completed_at: b.completedAt||""
+    })));
+    console.log("🔍 Reinserting bookings, count:", allBookings.length);
+    if(allBookings.length > 0){
+      const insRes = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(allBookings)});
+      console.log("🔍 Insert bookings status:", insRes.status);
+      if(!insRes.ok){
+        const errText = await insRes.text();
+        console.error("🔴 Insert bookings failed:", insRes.status, errText);
+      }
     }
-
-    if(res.ok){
-      console.log("✅ Booking saved to Supabase:", booking.ref);
-    } else {
-      const err = await res.text();
-      console.error("🔴 Supabase booking save failed:", res.status, err);
-    }
-  } catch(e){
-    console.error("🔴 FULL SAVE ERROR:", e.name, e.message, e);
-  }
+    console.log("✅ Bookings saved to Supabase:", allBookings.length);
+  } catch(e){ console.error("🔴 Supabase bookings sync error:", e.name, e.message, e); }
 }
 
 async function deleteBookingFromSheet(ref){
