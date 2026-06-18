@@ -713,7 +713,7 @@ async function saveData(){
 
 async function saveBookingToSheet(booking){
   saveLocalCache();
-  if(!db) return;
+  if(!db) { console.warn("⚠️ Cannot save booking - db is null"); return; }
   try {
     const base = SUPABASE_URL + "/rest/v1/";
     const headers = {
@@ -745,16 +745,34 @@ async function saveBookingToSheet(booking){
       completed: booking.completed||false,
       completed_at: booking.completedAt||""
     };
-    // Delete any existing row with this ref first, then insert fresh (same reliable pattern as blocked dates)
-    await fetch(base + "bookings?ref=eq." + encodeURIComponent(booking.ref), {method:"DELETE", headers});
-    const res = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(row)});
+    console.log("🔍 Attempting to save booking row:", row);
+
+    // Delete any existing row with this ref first
+    try {
+      const delRes = await fetch(base + "bookings?ref=eq." + encodeURIComponent(booking.ref), {method:"DELETE", headers});
+      console.log("🔍 Delete-before-insert status:", delRes.status);
+    } catch(delErr){
+      console.error("🔴 RAW FETCH ERROR on delete step:", delErr.name, delErr.message);
+      throw delErr;
+    }
+
+    let res;
+    try {
+      res = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(row)});
+    } catch(postErr){
+      console.error("🔴 RAW FETCH ERROR on insert step:", postErr.name, postErr.message, postErr);
+      throw postErr;
+    }
+
     if(res.ok){
       console.log("✅ Booking saved to Supabase:", booking.ref);
     } else {
       const err = await res.text();
-      console.warn("❌ Supabase booking save failed:", res.status, err);
+      console.error("🔴 Supabase booking save failed:", res.status, err);
     }
-  } catch(e){ console.warn("❌ Supabase save error:", e.message); }
+  } catch(e){
+    console.error("🔴 FULL SAVE ERROR:", e.name, e.message, e);
+  }
 }
 
 async function deleteBookingFromSheet(ref){
@@ -785,7 +803,7 @@ async function loadFromSheets(){
   } catch(e){ console.warn("localStorage load error:", e.message); }
 
   // Then try to sync from Supabase in background
-  if(!db) return;
+  if(!db) { console.warn("⚠️ Supabase db object is null - initSupabase never succeeded"); return; }
   try {
     const base = SUPABASE_URL + "/rest/v1/";
     const headers = {
@@ -794,10 +812,24 @@ async function loadFromSheets(){
       "Content-Type": "application/json"
     };
 
+    console.log("🔍 Attempting fetch to:", base + "bookings?select=*&order=date_key");
+
     // Load bookings
-    const bRes = await fetch(base + "bookings?select=*&order=date_key", {headers});
-    if(!bRes.ok) throw new Error("Bookings fetch failed: " + bRes.status);
+    let bRes;
+    try {
+      bRes = await fetch(base + "bookings?select=*&order=date_key", {headers});
+    } catch(fetchErr){
+      console.error("🔴 RAW FETCH ERROR (bookings):", fetchErr.name, fetchErr.message, fetchErr);
+      throw fetchErr;
+    }
+    console.log("🔍 Bookings response status:", bRes.status, bRes.statusText);
+    if(!bRes.ok){
+      const errText = await bRes.text();
+      console.error("🔴 Bookings fetch not ok:", bRes.status, errText);
+      throw new Error("Bookings fetch failed: " + bRes.status + " " + errText);
+    }
     const bookingRows = await bRes.json();
+    console.log("🔍 Bookings rows received:", bookingRows.length);
 
     if(bookingRows && bookingRows.length > 0){
       // Reset and reload from Supabase (source of truth)
@@ -820,8 +852,18 @@ async function loadFromSheets(){
     }
 
     // Load blocked dates
-    const blRes = await fetch(base + "blocked_dates?select=*", {headers});
-    if(!blRes.ok) throw new Error("Blocked fetch failed: " + blRes.status);
+    let blRes;
+    try {
+      blRes = await fetch(base + "blocked_dates?select=*", {headers});
+    } catch(fetchErr){
+      console.error("🔴 RAW FETCH ERROR (blocked_dates):", fetchErr.name, fetchErr.message, fetchErr);
+      throw fetchErr;
+    }
+    if(!blRes.ok){
+      const errText = await blRes.text();
+      console.error("🔴 Blocked fetch not ok:", blRes.status, errText);
+      throw new Error("Blocked fetch failed: " + blRes.status + " " + errText);
+    }
     const blockedRows = await blRes.json();
 
     if(blockedRows && blockedRows.length > 0){
@@ -838,6 +880,7 @@ async function loadFromSheets(){
     // Refresh calendar if on date step
     if(document.getElementById("step-2") && !document.getElementById("step-2").classList.contains("hidden")) renderCalendar();
   } catch(e){
+    console.error("🔴 FULL SUPABASE SYNC ERROR:", e);
     console.warn("Supabase sync failed, using localStorage:", e.message);
   }
 }
@@ -1198,11 +1241,7 @@ function addManualBooking(){
   };
   bookings[pkgId].push(newManualBooking);
 
-  // CRITICAL: actually save it - this was missing before
-  saveData();
-  saveBookingToSheet(newManualBooking);
-
-  // Clear form
+  // Clear form immediately so UI feels responsive
   ["mb-firstName","mb-lastName","mb-phone","mb-email","mb-address","mb-notes","mb-amountpaid","mb-date"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("mb-pkg").value="";
   document.getElementById("mb-duration").innerHTML='<option value="">Select Duration</option>';
@@ -1214,7 +1253,33 @@ function addManualBooking(){
   renderAdmin();
   // Scroll to bookings list to show the new booking
   setTimeout(()=>document.getElementById("bookings-list").scrollIntoView({behavior:"smooth"}),100);
-  alert(`✅ Booking added for ${firstName} ${lastName} on ${date}!`);
+
+  // Show a non-blocking success banner (alert() was freezing JS and killing the Supabase save)
+  showSaveBanner(`✅ Booking added for ${newManualBooking.name} on ${date}!`);
+
+  // Save in background WITHOUT alert() blocking the async requests.
+  // alert() freezes JS execution and can cancel pending fetch() calls,
+  // which was preventing this booking from ever reaching Supabase.
+  Promise.resolve()
+    .then(()=>saveData())
+    .then(()=>saveBookingToSheet(newManualBooking))
+    .then(()=>{ console.log("✅ Manual booking fully saved:", newManualBooking.ref); })
+    .catch(e=>{ console.warn("❌ Manual booking save error:", e); });
+}
+
+function showSaveBanner(msg){
+  let banner = document.getElementById("save-banner");
+  if(!banner){
+    banner = document.createElement("div");
+    banner.id = "save-banner";
+    banner.style.cssText = "position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#16A34A;color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.3);transition:opacity 0.3s;";
+    document.body.appendChild(banner);
+  }
+  banner.textContent = msg;
+  banner.style.opacity = "1";
+  banner.style.display = "block";
+  clearTimeout(window._saveBannerTimeout);
+  window._saveBannerTimeout = setTimeout(()=>{ banner.style.opacity="0"; setTimeout(()=>banner.style.display="none",300); }, 3000);
 }
 
 function isDateAlreadyBooked(pkgId,dateKey){
