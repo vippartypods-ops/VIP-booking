@@ -720,7 +720,11 @@ async function saveBookingToSheet(booking){
       "apikey": SUPABASE_KEY,
       "Authorization": "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json",
-      "Prefer": "return=minimal"
+      // merge-duplicates tells Postgres: if a row with this ref already exists, update it;
+      // otherwise insert it. This does the job in ONE request instead of a
+      // separate DELETE-then-INSERT, which was causing problems when there was
+      // no existing row to delete.
+      "Prefer": "resolution=merge-duplicates,return=minimal"
     };
     const pkgId = booking.pkgId || booking.pkg_id ||
       PACKAGES.find(p=>p.name===booking.pkgName)?.id ||
@@ -745,22 +749,13 @@ async function saveBookingToSheet(booking){
       completed: booking.completed||false,
       completed_at: booking.completedAt||""
     };
-    console.log("🔍 Attempting to save booking row:", row);
-
-    // Delete any existing row with this ref first
-    try {
-      const delRes = await fetch(base + "bookings?ref=eq." + encodeURIComponent(booking.ref), {method:"DELETE", headers});
-      console.log("🔍 Delete-before-insert status:", delRes.status);
-    } catch(delErr){
-      console.error("🔴 RAW FETCH ERROR on delete step:", delErr.name, delErr.message);
-      throw delErr;
-    }
+    console.log("🔍 Attempting to upsert booking row:", row);
 
     let res;
     try {
-      res = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(row)});
+      res = await fetch(base + "bookings?on_conflict=ref", {method:"POST", headers, body:JSON.stringify(row)});
     } catch(postErr){
-      console.error("🔴 RAW FETCH ERROR on insert step:", postErr.name, postErr.message, postErr);
+      console.error("🔴 RAW FETCH ERROR on upsert:", postErr.name, postErr.message, postErr);
       throw postErr;
     }
 
@@ -831,24 +826,37 @@ async function loadFromSheets(){
     const bookingRows = await bRes.json();
     console.log("🔍 Bookings rows received:", bookingRows.length);
 
-    if(bookingRows && bookingRows.length > 0){
-      // Reset and reload from Supabase (source of truth)
-      bookings = {};
+    if(bookingRows){
+      // Merge Supabase data into existing bookings instead of wiping everything out.
+      // This prevents a just-added local booking from being erased if Supabase
+      // hasn't fully processed the save yet (this was a real bug).
+      const fromSupabase = {};
       bookingRows.forEach(row => {
         const pkgId = row.pkg_id || PACKAGES.find(p=>p.name===row.pkg_name)?.id || "";
         if(!pkgId) return;
-        if(!bookings[pkgId]) bookings[pkgId]=[];
-        if(!bookings[pkgId].find(b=>b.ref===row.ref)){
-          bookings[pkgId].push({
-            ref:row.ref, name:row.name, email:row.email, phone:row.phone,
-            address:row.address, pkgName:row.pkg_name, nerfType:row.nerf_type,
-            duration:row.duration, dateKey:row.date_key, startTime:row.start_time,
-            paymentStatus:row.payment_status, amountPaid:parseFloat(row.amount_paid)||0,
-            price:parseFloat(row.price)||0, notes:row.notes, source:row.source,
-            completed:row.completed||false, completedAt:row.completed_at||""
-          });
-        }
+        if(!fromSupabase[pkgId]) fromSupabase[pkgId]=[];
+        fromSupabase[pkgId].push({
+          ref:row.ref, name:row.name, email:row.email, phone:row.phone,
+          address:row.address, pkgName:row.pkg_name, nerfType:row.nerf_type,
+          duration:row.duration, dateKey:row.date_key, startTime:row.start_time,
+          paymentStatus:row.payment_status, amountPaid:parseFloat(row.amount_paid)||0,
+          price:parseFloat(row.price)||0, notes:row.notes, source:row.source,
+          completed:row.completed||false, completedAt:row.completed_at||""
+        });
       });
+      // Merge: start with what Supabase has, then add back any local booking
+      // that Supabase doesn't have yet (still saving) so nothing gets lost.
+      const merged = {...fromSupabase};
+      PACKAGES.forEach(p=>{
+        const localList = bookings[p.id]||[];
+        if(!merged[p.id]) merged[p.id]=[];
+        localList.forEach(localBooking=>{
+          if(!merged[p.id].find(b=>b.ref===localBooking.ref)){
+            merged[p.id].push(localBooking);
+          }
+        });
+      });
+      bookings = merged;
     }
 
     // Load blocked dates
@@ -866,12 +874,13 @@ async function loadFromSheets(){
     }
     const blockedRows = await blRes.json();
 
-    if(blockedRows && blockedRows.length > 0){
-      blocked = {};
+    if(blockedRows){
+      const fromSupabaseBlocked = {};
       blockedRows.forEach(row => {
-        if(!blocked[row.pkg_id]) blocked[row.pkg_id]=[];
-        if(!blocked[row.pkg_id].includes(row.date_key)) blocked[row.pkg_id].push(row.date_key);
+        if(!fromSupabaseBlocked[row.pkg_id]) fromSupabaseBlocked[row.pkg_id]=[];
+        if(!fromSupabaseBlocked[row.pkg_id].includes(row.date_key)) fromSupabaseBlocked[row.pkg_id].push(row.date_key);
       });
+      blocked = fromSupabaseBlocked;
     }
 
     saveLocalCache();
@@ -902,26 +911,34 @@ window.onload = function() {
 
   // Database - runs separately so failures dont break the page
   try { initSupabase(); } catch(e){ console.warn("Supabase init error:", e); }
-  setTimeout(function(){ try { loadFromSheets(); } catch(e){ console.warn("Load error:", e); } }, 100);
 
-  // URL param handling
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.get("owner") === "true") { showView("admin-login"); }
-    if(urlParams.get("paid") === "true") {
-      const pendingBooking = JSON.parse(localStorage.getItem("vip_pending_booking")||"null");
-      if(pendingBooking) {
-        const pkgId = pendingBooking.pkgId;
-        if(!bookings[pkgId]) bookings[pkgId] = [];
-        bookings[pkgId].push(pendingBooking.booking);
-        saveData();
-        saveBookingToSheet(pendingBooking.booking);
-        localStorage.removeItem("vip_pending_booking");
-        showThanksFromData(pendingBooking);
+  // URL param handling - runs BEFORE the background Supabase sync so a fresh
+  // online booking from Stripe is guaranteed to be saved before any sync can run
+  (async function handleUrlParams(){
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if(urlParams.get("owner") === "true") { showView("admin-login"); }
+      if(urlParams.get("paid") === "true") {
+        const pendingBooking = JSON.parse(localStorage.getItem("vip_pending_booking")||"null");
+        if(pendingBooking) {
+          const pkgId = pendingBooking.pkgId;
+          if(!bookings[pkgId]) bookings[pkgId] = [];
+          if(!bookings[pkgId].find(b=>b.ref===pendingBooking.booking.ref)){
+            bookings[pkgId].push(pendingBooking.booking);
+          }
+          saveLocalCache();
+          await saveBookingToSheet(pendingBooking.booking);
+          localStorage.removeItem("vip_pending_booking");
+          showThanksFromData(pendingBooking);
+          console.log("✅ Online booking confirmed and saved:", pendingBooking.booking.ref);
+        }
       }
-    }
-  } catch(e){ console.warn("URL param error:", e); }
-};;
+    } catch(e){ console.warn("URL param error:", e); }
+
+    // Only start the background Supabase sync AFTER any pending booking is fully saved
+    setTimeout(function(){ try { loadFromSheets(); } catch(e){ console.warn("Load error:", e); } }, 100);
+  })();
+};
 
 function showView(v) {
   ["view-booking","view-admin-login","view-admin"].forEach(id => document.getElementById(id).classList.add("hidden"));
@@ -1070,7 +1087,6 @@ function buildSummary(){
 
 function handlePayment(){
   const key=toDateKey(selectedDate),ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
-  if(!bookings[selectedPkg])bookings[selectedPkg]=[];
   const nerfLabel=selectedPkg==="battle-bash-pod"&&selectedNerfType?` — ${selectedNerfType}`:"";
   const price=PACKAGES.find(p=>p.id===selectedPkg).options.find(o=>o.label===selectedDuration).price;
   const pkg2=PACKAGES.find(p=>p.id===selectedPkg);
@@ -1102,16 +1118,6 @@ function showThanksFromData(pendingData){
   const endRow=document.getElementById("ty-end-row");
   if(b.duration!=="All Night"){document.getElementById("ty-end").textContent=getEndTime(b.startTime,b.duration);endRow.style.display="flex";}else{endRow.style.display="none";}
   window.scrollTo(0,0);
-}
-
-function showThanks(ref,key){
-  const pkg=PACKAGES.find(p=>p.id===selectedPkg),dur=pkg.options.find(o=>o.label===selectedDuration);
-  for(let i=0;i<STEP_NAMES.length;i++){const el=document.getElementById("step-"+i);if(el)el.classList.add("hidden");}
-  document.getElementById("step-thanks").classList.remove("hidden");
-  document.getElementById("ty-pkg").textContent=pkg.name;document.getElementById("ty-dur").textContent=selectedDuration;document.getElementById("ty-date").textContent=formatDate(selectedDate);document.getElementById("ty-time").textContent=selectedTime;document.getElementById("ty-ref").textContent=ref;document.getElementById("ty-total").textContent=`$${dur.price.toFixed(2)}`;
-  const nerfRow=document.getElementById("ty-nerf-row");if(selectedPkg==="battle-bash-pod"&&selectedNerfType){document.getElementById("ty-nerf").textContent=selectedNerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
-  const endRow=document.getElementById("ty-end-row");if(selectedDuration!=="All Night"){document.getElementById("ty-end").textContent=getEndTime(selectedTime,selectedDuration);endRow.style.display="flex";}else{endRow.style.display="none";}
-  currentStep=STEP_NAMES.length;renderStepper();window.scrollTo(0,0);
 }
 
 function adminLogin(){const pw=document.getElementById("admin-pw").value;if(pw===ADMIN_PASSWORD){document.getElementById("admin-error").classList.add("hidden");showView("admin");}else{document.getElementById("admin-error").classList.remove("hidden");}}
@@ -1384,6 +1390,7 @@ function clearAllBlocked(){
   const names=[...selectedBlockPkgs].map(id=>PACKAGES.find(p=>p.id===id).name).join(", ");
   if(!confirm(`Clear all blocked dates for: ${names}?`))return;
   selectedBlockPkgs.forEach(pkgId=>{blocked[pkgId]=[];});
+  saveData();
   renderAdmin();
 }
 function confirmMarkPaid(pkgId,ref,method){
