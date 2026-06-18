@@ -244,6 +244,7 @@
         <div class="input-group"><label class="input-label">State</label><input class="input" id="state" placeholder="TN" oninput="checkInfoForm()"/></div>
         <div class="input-group"><label class="input-label">ZIP</label><input class="input" id="zip" placeholder="00000" oninput="checkInfoForm()"/></div>
       </div>
+      <div id="info-missing-msg" style="color:#FCD34D;font-size:13px;margin-bottom:12px;display:none;"></div>
       <div class="btn-row">
         <button class="btn btn-outline" onclick="goToStep(2)">← Back</button>
         <button class="btn btn-disabled" id="btn-info-next" onclick="goToStep(4)">Continue →</button>
@@ -902,11 +903,18 @@ function showStep(n) {
 }
 
 function goToStep(n) {
-  if(n===1&&!agreed)return;
-  if(n===2&&(!selectedPkg||!selectedDuration))return;
-  if(n===2&&selectedPkg==="battle-bash-pod"&&!selectedNerfType)return;
-  if(n===3&&(!selectedDate||!selectedTime))return;
-  if(n===4&&!infoValid())return;
+  if(n===1&&!agreed){ alert("Please check the box to agree to the Rental Agreement before continuing."); return; }
+  if(n===2&&(!selectedPkg||!selectedDuration)){ alert("Please select a package and duration before continuing."); return; }
+  if(n===2&&selectedPkg==="battle-bash-pod"&&!selectedNerfType){ alert("Please choose Nerf or Nerf Laser Pro before continuing."); return; }
+  if(n===3&&(!selectedDate||!selectedTime)){ alert("Please select a date and start time before continuing."); return; }
+  if(n===4&&!infoValid()){
+    const missing=getMissingFields().map(id=>FIELD_LABELS[id]);
+    const msgEl=document.getElementById("info-missing-msg");
+    msgEl.textContent="⚠️ Please fill in: "+missing.join(", ");
+    msgEl.style.display="block";
+    msgEl.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
   if(n===4)buildSummary();
   showStep(n);
 }
@@ -988,8 +996,17 @@ function showTimeSection(){
 }
 
 function checkDTNext(){document.getElementById("btn-dt-next").className="btn "+(selectedDate&&selectedTime?"btn-primary":"btn-disabled");}
-function infoValid(){return["firstName","lastName","email","phone","address","city","state","zip"].every(id=>document.getElementById(id)?.value.trim());}
-function checkInfoForm(){document.getElementById("btn-info-next").className="btn "+(infoValid()?"btn-primary":"btn-disabled");}
+const FIELD_LABELS = {firstName:"First Name", lastName:"Last Name", email:"Email", phone:"Phone Number", address:"Party Address", city:"City", state:"State", zip:"ZIP"};
+function getMissingFields(){
+  return ["firstName","lastName","email","phone","address","city","state","zip"].filter(id=>!document.getElementById(id)?.value.trim());
+}
+function infoValid(){return getMissingFields().length===0;}
+function checkInfoForm(){
+  const missing=getMissingFields();
+  document.getElementById("btn-info-next").className="btn "+(missing.length===0?"btn-primary":"btn-disabled");
+  const msgEl=document.getElementById("info-missing-msg");
+  if(missing.length===0){ msgEl.style.display="none"; }
+}
 
 function buildSummary(){
   const pkg=PACKAGES.find(p=>p.id===selectedPkg),dur=pkg.options.find(o=>o.label===selectedDuration);
