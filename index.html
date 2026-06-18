@@ -720,9 +720,8 @@ async function saveBookingToSheet(booking){
       "apikey": SUPABASE_KEY,
       "Authorization": "Bearer " + SUPABASE_KEY,
       "Content-Type": "application/json",
-      "Prefer": "resolution=merge-duplicates,return=minimal"
+      "Prefer": "return=minimal"
     };
-    // Find pkg_id from pkgName if not directly provided
     const pkgId = booking.pkgId || booking.pkg_id ||
       PACKAGES.find(p=>p.name===booking.pkgName)?.id ||
       PACKAGES.find(p=>p.name===booking.pkg_name)?.id || "";
@@ -746,13 +745,16 @@ async function saveBookingToSheet(booking){
       completed: booking.completed||false,
       completed_at: booking.completedAt||""
     };
+    // Delete any existing row with this ref first, then insert fresh (same reliable pattern as blocked dates)
+    await fetch(base + "bookings?ref=eq." + encodeURIComponent(booking.ref), {method:"DELETE", headers});
     const res = await fetch(base + "bookings", {method:"POST", headers, body:JSON.stringify(row)});
-    if(res.ok) console.log("✅ Booking saved to Supabase:", booking.ref);
-    else {
+    if(res.ok){
+      console.log("✅ Booking saved to Supabase:", booking.ref);
+    } else {
       const err = await res.text();
-      console.warn("Supabase booking save failed:", res.status, err);
+      console.warn("❌ Supabase booking save failed:", res.status, err);
     }
-  } catch(e){ console.warn("Supabase save error:", e.message); }
+  } catch(e){ console.warn("❌ Supabase save error:", e.message); }
 }
 
 async function deleteBookingFromSheet(ref){
@@ -1187,12 +1189,18 @@ function addManualBooking(){
   const ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
 
   if(!bookings[pkgId])bookings[pkgId]=[];
-  bookings[pkgId].push({
+  const newManualBooking={
     dateKey:date, startTime:time, duration, nerfType:pkgId==="battle-bash-pod"?mbNerfType:null,
     name:`${firstName} ${lastName}`, email, phone, address, ref, price:dur.price,
+    pkgName:pkg.name, pkgId:pkgId,
     paymentStatus:payment, amountPaid:parseFloat(amountPaid)||0, notes,
     source:"phone", addedBy:"owner"
-  });
+  };
+  bookings[pkgId].push(newManualBooking);
+
+  // CRITICAL: actually save it - this was missing before
+  saveData();
+  saveBookingToSheet(newManualBooking);
 
   // Clear form
   ["mb-firstName","mb-lastName","mb-phone","mb-email","mb-address","mb-notes","mb-amountpaid","mb-date"].forEach(id=>document.getElementById(id).value="");
