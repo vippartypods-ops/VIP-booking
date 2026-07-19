@@ -694,13 +694,13 @@
 const ADMIN_PASSWORD = "vipAdmin2026";
 
 const STRIPE_LINKS = {
-  "vip-party-pod|4 Hours":    "https://buy.stripe.com/14A4gB1mLdoe2Se6jZ3ZK06",
-  "vip-party-pod|6 Hours":    "https://buy.stripe.com/cNi00ld5t6ZQ64qaAf3ZK05",
-  "vip-party-pod|All Night":  "https://buy.stripe.com/8x23cx8Pd0Bs1OafUz3ZK04",
-  "battle-bash-pod|4 Hours":  "https://buy.stripe.com/14AbJ33uTgAq50m7o33ZK03",
-  "battle-bash-pod|6 Hours":  "https://buy.stripe.com/5kQ28t0iH0BsgJ46jZ3ZK02",
-  "glow-up-pod|6 Hours":      "https://buy.stripe.com/8x200l6H5ckaboKaAf3ZK01",
-  "all-nighter-pod|All Night":"https://buy.stripe.com/8x214pc1pckaakG23J3ZK00",
+  "vip-party-pod|4 Hours":    "https://buy.stripe.com/8x23cx8Pd0Bs1OafUz3ZK04",
+  "vip-party-pod|6 Hours":    "https://buy.stripe.com/14A4gB1mLdoe2Se6jZ3ZK06",
+  "vip-party-pod|All Night":  "https://buy.stripe.com/14AbJ33uTgAq50m7o33ZK03",
+  "battle-bash-pod|4 Hours":  "https://buy.stripe.com/cNi00ld5t6ZQ64qaAf3ZK05",
+  "battle-bash-pod|6 Hours":  "https://buy.stripe.com/8x214pc1pckaakG23J3ZK00",
+  "glow-up-pod|6 Hours":      "https://buy.stripe.com/5kQ28t0iH0BsgJ46jZ3ZK02",
+  "all-nighter-pod|All Night":"https://buy.stripe.com/8x200l6H5ckaboKaAf3ZK01",
 };
 
 const PACKAGES = [
@@ -741,7 +741,7 @@ CANCELLATION & RESCHEDULING
 By checking the box below and completing this booking, you agree to all terms and policies listed in this Rental Agreement.`;
 
 const DURATION_HOURS = { "4 Hours":4, "6 Hours":6, "12 Hours":12, "All Night":14 };
-const ALL_TIMES = ["10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","5:30 PM","6:00 PM","7:00 PM","8:00 PM","9:00 PM","9:30 PM"];
+const ALL_TIMES = ["10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM"];
 const STEP_NAMES = ["Policy","Package","Date & Time","Your Info","Confirm & Pay"];
 
 let agreed=false, selectedPkg=null, selectedDuration=null, selectedNerfType=null, selectedDate=null, selectedTime=null, calYear, calMonth, currentStep=0;
@@ -1435,9 +1435,7 @@ function updateMBTimes(){
   const timeSel=document.getElementById("mb-time");
   timeSel.innerHTML='<option value="">Select Time</option>';
   if(!dur)return;
-  // Temporarily set selectedDate so getAvailableTimes' built-in Friday logic
-  // applies correctly here too - this avoids a second, conflicting Friday
-  // filter that was cancelling out all time slots for longer durations.
+  // Temporarily set selectedDate so getAvailableTimes' built-in logic applies
   const prevSelectedDate = selectedDate;
   if(dateVal){ selectedDate = new Date(dateVal+"T12:00:00"); }
   let times=getAvailableTimes(dur);
@@ -2356,25 +2354,22 @@ function timeToMinutes(t){const [tp,period]=t.split(" ");let [h,m]=tp.split(":")
 function minutesToTime(mins){const h=Math.floor(mins/60)%24,m=mins%60,period=h>=12?"PM":"AM",dH=h>12?h-12:h===0?12:h;return `${dH}:${m.toString().padStart(2,"0")} ${period}`;}
 function getEndTime(startTime,duration){if(duration==="All Night")return "Morning pickup";return minutesToTime(timeToMinutes(startTime)+DURATION_HOURS[duration]*60);}
 function getAvailableTimes(duration){
-  if(duration==="All Night")return["9:30 PM"];
+  if(duration==="All Night"){
+    const isFriday = selectedDate && selectedDate.getDay()===5;
+    // Friday All Night starts at 7:00 PM only
+    // Other days All Night starts at 9:30 PM
+    return isFriday ? ["7:00 PM"] : ["9:30 PM"];
+  }
   if(duration==="12 Hours"){
     // Vendor/internal events - any start time is fine, no 9:30 PM cutoff,
     // since this is only ever booked manually by the owner, not customers.
     return ALL_TIMES;
   }
-  const isFriday = selectedDate && selectedDate.getDay()===5;
-  let times;
-  if(isFriday){
-    // Fridays: parties can only start at 5:00 PM or later (no daytime slots),
-    // but unlike weekdays we do NOT cap the end time at 9:30 PM - an evening
-    // party is allowed to run as late as it needs to for its full duration.
-    times = ALL_TIMES.filter(t=>timeToMinutes(t)>=timeToMinutes("5:00 PM"));
-  } else {
-    // Other days: any time slot is fine as long as the party ends by 9:30 PM
-    const maxEnd=timeToMinutes("9:30 PM");
-    times = ALL_TIMES.filter(t=>timeToMinutes(t)+DURATION_HOURS[duration]*60<=maxEnd);
-  }
-  return times;
+  // For all other durations (4hr, 6hr) on ANY day including Friday:
+  // party must end by 9:30 PM. This applies to Friday too —
+  // if they want to go later on a Friday they need the All Night option.
+  const maxEnd=timeToMinutes("9:30 PM");
+  return ALL_TIMES.filter(t=>timeToMinutes(t)+DURATION_HOURS[duration]*60<=maxEnd);
 }
 </script>
 </body>
