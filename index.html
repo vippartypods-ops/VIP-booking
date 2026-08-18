@@ -12,7 +12,19 @@
 .owner-access:hover,.owner-access.active{
  opacity:.9;background:rgba(100,100,115,.35);color:rgba(255,255,255,.65)
 }
-</style></head><body>
+</style>
+<style>
+html,body{overflow-x:hidden}
+.framewrap{max-width:100vw;overflow:hidden}
+iframe{max-width:100vw}
+</style>
+
+<style>
+@media(max-width:650px){
+  .mb-event-day-row{grid-template-columns:1fr!important;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:10px}
+}
+</style>
+</head><body>
 <div class="appbar"><div class="appbar-in"><div class="brand">VIP Party Pods Booking</div><div class="topnav"><button id="nav-book" onclick="VIP_APP.openCustomer('book')">BOOK A PARTY</button><button id="nav-quote" onclick="VIP_APP.openCustomer('quote')">REQUEST A QUOTE</button></div></div></div>
 <div id="shell-status" style="display:none"></div><div class="framewrap"><iframe id="vip-frame" title="VIP Party Pods"></iframe></div><button id="nav-admin" class="owner-access" onclick="VIP_APP.openAdmin()" title="Owner access">OWNER</button>
 <template id="customer-template"><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIP Party Pods — Book Your Pod</title>
@@ -200,6 +212,18 @@ renderSteps();renderPkgs();try{unavailableDates=new Set(JSON.parse(localStorage.
 </script>
 <script>
 window.addEventListener('load',function(){try{const mode=(window.frameElement&&window.frameElement.dataset.mode)||'book';if(mode==='quote'&&typeof showQuote==='function')showQuote();else if(mode==='portal'&&typeof showPortal==='function')showPortal();else if(typeof showBook==='function')showBook();}catch(e){}});
+</script>
+
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  try{
+    adminSession=null;
+    try{sessionStorage.removeItem('vip_admin_session')}catch(e){}
+    showView('login');
+    const pw=document.getElementById('admin-pw');
+    if(pw){pw.value='';setTimeout(()=>pw.focus(),50);}
+  }catch(e){console.error('Owner login gate error',e);}
+});
 </script>
 </body></html></template><template id="admin-template"><!DOCTYPE html>
 <html lang="en">
@@ -836,6 +860,24 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
               </select>
             </div>
           </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(251,191,36,.16);">
+            <label style="display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:#FCD34D;cursor:pointer;">
+              <input type="checkbox" id="mb-multiday" onchange="toggleMultiDayEvent()" style="width:18px;height:18px;">
+              Multi-Day Fair / Festival Booking
+            </label>
+            <div id="mb-multiday-section" class="hidden" style="margin-top:12px;">
+              <div style="font-size:11px;color:rgba(255,255,255,.45);line-height:1.5;margin-bottom:10px;">
+                Keep the entire fair/festival under one booking. Choose the date range, then set different operating hours for each day. Every listed date will be unavailable to customer bookings.
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
+                <div class="input-group"><label class="input-label">First Event Day</label><input type="date" class="input" id="mb-multiday-start"></div>
+                <div class="input-group"><label class="input-label">Last Event Day</label><input type="date" class="input" id="mb-multiday-end"></div>
+                <button type="button" class="record-action" onclick="buildMultiDaySchedule()" style="margin-bottom:16px;">Build Days</button>
+              </div>
+              <div id="mb-multiday-days"></div>
+            </div>
+          </div>
+
           <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">For pay-to-play events leave the price blank — you can update it after the event when you know the final amount.</div>
         </div>
 
@@ -1205,11 +1247,18 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
         <div class="input-group"><label class="input-label">Balance Due Date</label><input type="date" class="input" id="edit-balance-due"/></div>
         <div class="input-group span2"><label class="input-label">Booking Notes</label><textarea class="input" id="edit-notes" rows="3"></textarea></div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px;"><button type="button" id="save-booking-changes-btn" class="quick-add-btn" onclick="saveBookingRecordEdits(event)">Save Booking Changes</button><span id="save-booking-changes-status" style="font-size:12px;color:rgba(255,255,255,.45);"></span><button class="record-action" onclick="applySuggestedAdjustedPrice()">Apply Discount to Total</button><button class="record-action" onclick="addPaymentRecord()">＋ Payment</button><button class="record-action" onclick="addAuditNote()">＋ Activity Note</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px;"><button type="button" id="save-booking-changes-btn" class="quick-add-btn" onclick="saveBookingRecordEdits(event)">Save Booking Changes</button><button type="button" class="record-action" style="border-color:rgba(52,211,153,.35);color:#34D399" onclick="completeBookingPaid()">✓ Complete — PAID</button><button type="button" class="record-action" style="border-color:rgba(251,191,36,.35);color:#FCD34D" onclick="completeBookingUnpaid()">✓ Complete — NOT PAID</button><span id="save-booking-changes-status" style="font-size:12px;color:rgba(255,255,255,.45);"></span><button class="record-action" onclick="applySuggestedAdjustedPrice()">Apply Discount to Total</button><button class="record-action" onclick="addPaymentRecord()">＋ Payment</button><button class="record-action" onclick="addAuditNote()">＋ Activity Note</button></div>
 
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">💳 Payment History</div></div><div id="record-payment-history"></div></div>
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">🧾 Expenses & Profit</div><button class="soft-btn amber-soft" onclick="addExpenseRecord()">＋ Add Expense</button></div><div id="record-profit-summary" class="ultimate-grid"></div><div id="record-expense-history" class="mini-list"></div></div>
-      <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">👷 Staff Assigned</div><button class="soft-btn" onclick="assignRosterToBooking('staff')">＋ Assign Staff</button></div><div id="record-staff-history" class="settings-list"></div></div>
+      
+<div class="record-subsection" id="record-event-schedule-section" style="display:none;">
+  <div class="record-subsection-head">
+    <div class="record-subsection-title">🗓️ Multi-Day Event Schedule</div>
+  </div>
+  <div id="record-event-schedule-history" class="mini-list"></div>
+</div>
+<div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">👷 Staff Assigned</div><button class="soft-btn" onclick="assignRosterToBooking('staff')">＋ Manage Staff</button></div><div id="record-staff-history" class="settings-list"></div></div>
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">🎪 Equipment / Loadout</div><button class="soft-btn" onclick="assignRosterToBooking('equipment')">＋ Add Equipment</button></div><div id="record-equipment-history" class="settings-list"></div></div>
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">📎 Documents & Links</div><button class="soft-btn blue-soft" onclick="addDocumentRecord()">＋ Add Document</button></div><div id="record-document-history" class="mini-list"></div></div>
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">✅ Tasks / Follow-Ups</div><button class="soft-btn green-soft" onclick="addTaskRecord()">＋ Add Task</button></div><div id="record-task-history" class="mini-list"></div></div>
@@ -1218,17 +1267,42 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
   </div>
 </div>
 
+
+<div id="staff-picker-modal" class="v4-modal hidden" onclick="if(event.target===this)closeStaffPicker()">
+  <div class="v4-modal-card" style="width:min(620px,100%);">
+    <div class="v4-modal-head">
+      <div>
+        <div class="header-logo" style="font-size:11px;">VIP Party Pods</div>
+        <div style="font-size:20px;font-weight:800;margin-top:5px;">Assign Staff</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;">Select everyone working this booking or event.</div>
+      </div>
+      <button type="button" onclick="closeStaffPicker()" style="background:transparent;border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.6);width:36px;height:36px;border-radius:9px;cursor:pointer;">✕</button>
+    </div>
+    <div class="v4-modal-body">
+      <div id="staff-picker-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;"></div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);">
+        <button type="button" class="record-action" onclick="addNewStaffFromPicker()">＋ Add New Staff Member</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px;">
+        <button type="button" class="record-action" onclick="closeStaffPicker()">Cancel</button>
+        <button type="button" class="quick-add-btn" onclick="saveStaffPicker()">Save Assigned Staff</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const ADMIN_EMAIL = "vippartypods@gmail.com";
 let adminSession=null;
-try{adminSession=JSON.parse(sessionStorage.getItem('vip_admin_session')||'null')}catch(e){}
+// SECURITY: never reuse a previous browser owner session.
+try{sessionStorage.removeItem('vip_admin_session')}catch(e){}
 function getAdminToken(){return adminSession?.access_token||''}
 function adminHeaders(extra={}){const t=getAdminToken();return {apikey:SUPABASE_KEY,Authorization:'Bearer '+(t||SUPABASE_KEY),'Content-Type':'application/json',...extra}}
 async function refreshAdminSession(){
   if(!adminSession?.refresh_token)return false;
   try{
     const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:adminSession.refresh_token})});
-    if(!r.ok)return false;adminSession=await r.json();sessionStorage.setItem('vip_admin_session',JSON.stringify(adminSession));return true;
+    if(!r.ok)return false;adminSession=await r.json();return true;
   }catch(e){return false}
 }
 
@@ -2050,11 +2124,11 @@ async function adminLogin(){
   try{
     const r=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:ADMIN_EMAIL,password:pw})});
     if(!r.ok)throw new Error('login');
-    adminSession=await r.json();sessionStorage.setItem('vip_admin_session',JSON.stringify(adminSession));
+    adminSession=await r.json();
     showView('admin');await loadFromSheets();await syncExistingDateLocks();await loadWebsiteLeads();renderAdmin();
   }catch(e){err.textContent='Incorrect password or admin account is not configured.';err.classList.remove('hidden');}
 }
-function adminLogout(){adminSession=null;sessionStorage.removeItem('vip_admin_session');document.getElementById('admin-pw').value='';showView('booking');}
+function adminLogout(){adminSession=null;try{sessionStorage.removeItem('vip_admin_session')}catch(e){};document.getElementById('admin-pw').value='';showView('login');}
 
 function buildAdminPkgBtns(){
   const wrap=document.getElementById("block-pkg-btns");
@@ -2172,6 +2246,131 @@ async function syncExistingDateLocks(){
 }
 
 
+
+function toggleMultiDayEvent(){
+  const on=!!document.getElementById('mb-multiday')?.checked;
+  document.getElementById('mb-multiday-section')?.classList.toggle('hidden',!on);
+  if(!on){
+    const days=document.getElementById('mb-multiday-days');if(days)days.innerHTML='';
+  }
+}
+
+function dateRangeKeys(start,end){
+  if(!start||!end||end<start)return [];
+  const out=[],d=new Date(start+'T12:00:00'),last=new Date(end+'T12:00:00');
+  while(d<=last && out.length<31){
+    out.push(toDateKey(d));
+    d.setDate(d.getDate()+1);
+  }
+  return out;
+}
+
+function eventTimeOptions(selected=''){
+  const vals=['8:00 AM','8:30 AM','9:00 AM','9:30 AM','10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'];
+  return '<option value="">Select</option>'+vals.map(v=>`<option value="${v}" ${selected===v?'selected':''}>${v}</option>`).join('');
+}
+
+function buildMultiDaySchedule(existingDays=null){
+  const start=document.getElementById('mb-multiday-start')?.value;
+  const end=document.getElementById('mb-multiday-end')?.value;
+  const keys=existingDays?.length?existingDays.map(x=>x.date):dateRangeKeys(start,end);
+  const existingMap=new Map((existingDays||[]).map(x=>[x.date,x]));
+  const wrap=document.getElementById('mb-multiday-days');
+  if(!wrap)return;
+  if(!keys.length){
+    wrap.innerHTML='<div style="font-size:11px;color:#F87171;">Choose a valid first and last event day.</div>';return;
+  }
+  wrap.innerHTML=`<div style="display:grid;grid-template-columns:minmax(130px,1.2fr) 1fr 1fr;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.35);padding:0 4px 6px;"><div>Date</div><div>Start</div><div>End</div></div>`+
+  keys.map((date,i)=>{
+    const x=existingMap.get(date)||{};
+    return `<div class="mb-event-day-row" data-date="${date}" style="display:grid;grid-template-columns:minmax(130px,1.2fr) 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:750;color:#E9D5FF;">${fmtDate(date)}</div>
+      <select class="input mb-event-start">${eventTimeOptions(x.startTime||'')}</select>
+      <select class="input mb-event-end">${eventTimeOptions(x.endTime||'')}</select>
+    </div>`;
+  }).join('');
+}
+
+function collectMultiDaySchedule(){
+  return [...document.querySelectorAll('.mb-event-day-row')].map(row=>({
+    date:row.dataset.date,
+    startTime:row.querySelector('.mb-event-start')?.value||'',
+    endTime:row.querySelector('.mb-event-end')?.value||''
+  }));
+}
+
+function eventLockRef(ref,date){return `${ref}::DAY::${date}`;}
+
+async function reserveEventSchedule(days,ref){
+  const locked=[];
+  for(const d of days){
+    if(!d.date||!d.startTime||!d.endTime) return {ok:false,locked,error:'Each fair/festival day needs both a start and end time.'};
+    if(timeToMinutes(d.endTime)<=timeToMinutes(d.startTime)) return {ok:false,locked,error:`End time must be after start time on ${fmtDate(d.date)}.`};
+    const ok=await adminReserveDate(d.date,eventLockRef(ref,d.date));
+    if(ok!==true){
+      for(const prev of locked)await adminReleaseDate(eventLockRef(ref,prev));
+      return {ok:false,locked:[],error:`${fmtDate(d.date)} is already reserved or could not be locked.`};
+    }
+    locked.push(d.date);
+  }
+  return {ok:true,locked};
+}
+
+async function releaseEventSchedule(days,ref){
+  for(const d of (days||[])){
+    try{await adminReleaseDate(eventLockRef(ref,d.date||d));}catch(e){}
+  }
+}
+
+function renderEventScheduleRecord(b){
+  const sec=document.getElementById('record-event-schedule-section');
+  const list=document.getElementById('record-event-schedule-history');
+  if(!sec||!list)return;
+  const days=ensureUltimateMeta(b).eventDays||[];
+  sec.style.display=days.length?'block':'none';
+  if(days.length){
+    list.innerHTML=days.map(d=>`<div class="mini-entry"><div><strong>${fmtDate(d.date)}</strong></div><div style="color:#E9D5FF;font-weight:700;">${safeText(d.startTime||'—')} – ${safeText(d.endTime||'—')}</div></div>`).join('');
+  }
+}
+
+async function completeBookingPaid(){
+  const b=findBookingAnywhere(activeRecordRef);if(!b)return;
+  const m=ensureUltimateMeta(b);
+  const total=Number(b.price)||0;
+  b.completed=true;b.completedAt=new Date().toISOString();
+  m.bookingStatus='completed';
+  if(total>0){
+    b.amountPaid=total;
+    if(!m.payments.some(p=>Number(p.amount)===total && p.type==='Completion / Paid')){
+      m.payments.unshift({at:new Date().toISOString(),amount:total,method:'Manual / Admin',type:'Completion / Paid',note:'Marked completed and paid'});
+    }
+  }
+  b.paymentStatus='stripe'; // legacy "paid" bucket used by existing reports
+  addAudit(b,'Booking/event marked Completed — PAID');
+  const ok=await saveBookingToSheet(b);
+  if(!ok){alert('Could not save completion status.');return;}
+  await refreshBookingFromSupabase(b.ref);await resyncAllAdminData();
+  const fresh=findBookingAnywhere(b.ref);if(fresh){activeRecordPkg=fresh.pkgId;openBookingRecord(fresh.pkgId,fresh.ref);}
+  showSaveBanner('✅ Completed and marked paid');
+}
+
+async function completeBookingUnpaid(){
+  const b=findBookingAnywhere(activeRecordRef);if(!b)return;
+  const m=ensureUltimateMeta(b);
+  b.completed=true;b.completedAt=new Date().toISOString();m.bookingStatus='completed';
+  if(getCollected(b)>=Number(b.price||0) && Number(b.price||0)>0){
+    b.amountPaid=Math.max(0,Number(b.amountPaid)||0);
+  }
+  // Keep an unpaid/partial status so balance reports and follow-ups remain active.
+  b.paymentStatus=getCollected(b)>0?'deposit':'unpaid';
+  addAudit(b,`Booking/event marked Completed — NOT PAID · Balance still due ${money(getBalance(b))}`);
+  const ok=await saveBookingToSheet(b);
+  if(!ok){alert('Could not save completion status.');return;}
+  await refreshBookingFromSupabase(b.ref);await resyncAllAdminData();
+  const fresh=findBookingAnywhere(b.ref);if(fresh){activeRecordPkg=fresh.pkgId;openBookingRecord(fresh.pkgId,fresh.ref);}
+  showSaveBanner('✅ Completed — balance remains due');
+}
+
 async function addManualBooking(){
   const firstName=document.getElementById("mb-firstName").value.trim();
   const lastName=document.getElementById("mb-lastName").value.trim();
@@ -2182,6 +2381,8 @@ async function addManualBooking(){
   const duration=document.getElementById("mb-duration").value;
   const date=document.getElementById("mb-date").value;
   const time=document.getElementById("mb-time").value;
+  const isMultiDay=mbIsEvent&&!!document.getElementById("mb-multiday")?.checked;
+  const eventDays=isMultiDay?collectMultiDaySchedule():[];
   const payment=document.getElementById("mb-payment").value;
   const amountPaid=document.getElementById("mb-amountpaid").value;
   const notes=document.getElementById("mb-notes").value.trim();
@@ -2196,8 +2397,8 @@ async function addManualBooking(){
 
   // Validate — for events, org name replaces first/last name requirement
   if(isEvent){
-    if(!orgName||!date||(!mbHistorical&&!time)){
-      errEl.textContent="Please fill in: organization name, date, and time.";
+    if(!orgName||(!isMultiDay&&!date)||(!mbHistorical&&!isMultiDay&&!time)|| (isMultiDay&&!eventDays.length)){
+      errEl.textContent=isMultiDay?"Please enter the organization and build the multi-day schedule.":"Please fill in: organization name, date, and time.";
       errEl.classList.remove("hidden");return;
     }
   } else {
@@ -2213,9 +2414,14 @@ async function addManualBooking(){
   const ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
   if(!mbHistorical){
     try{await loadFromSheets();}catch(e){}
-    if(isDateAlreadyBooked(pkgId||"vip-party-pod",date)){errEl.textContent=`That date is already booked. Please choose a different date.`;errEl.classList.remove("hidden");return;}
-    const locked=await adminReserveDate(date,ref);
-    if(locked!==true){errEl.textContent=`That date could not be reserved. It may have just been booked or the live availability service is unavailable.`;errEl.classList.remove("hidden");return;}
+    if(isMultiDay){
+      const lockResult=await reserveEventSchedule(eventDays,ref);
+      if(!lockResult.ok){errEl.textContent=lockResult.error;errEl.classList.remove("hidden");return;}
+    }else{
+      if(isDateAlreadyBooked(pkgId||"vip-party-pod",date)){errEl.textContent=`That date is already booked. Please choose a different date.`;errEl.classList.remove("hidden");return;}
+      const locked=await adminReserveDate(date,ref);
+      if(locked!==true){errEl.textContent=`That date could not be reserved. It may have just been booked or the live availability service is unavailable.`;errEl.classList.remove("hidden");return;}
+    }
   }
   errEl.classList.add("hidden");
 
@@ -2240,7 +2446,7 @@ async function addManualBooking(){
   const finalPkgId=pkgId||"vip-party-pod";
   if(!bookings[finalPkgId])bookings[finalPkgId]=[];
   const newManualBooking={
-    dateKey:date, startTime:time||(mbHistorical?"Unknown / Not Recorded":"TBD"), duration:duration||"Custom",
+    dateKey:isMultiDay?eventDays[0].date:date, startTime:isMultiDay?eventDays[0].startTime:(time||(mbHistorical?"Unknown / Not Recorded":"TBD")), duration:isMultiDay?`${eventDays.length} Event Days`:(duration||"Custom"),
     nerfType:pkgId==="battle-bash-pod"?mbNerfType:null,
     name:isEvent?(orgName+(firstName?" — "+firstName+" "+lastName:"")):`${firstName} ${lastName}`,
     email, phone, address, ref, price:finalPrice,
@@ -2252,13 +2458,20 @@ async function addManualBooking(){
     isEvent:isEvent||false, orgName:orgName||"", attraction:attraction||"",
     payToPlay:payToPlay||false
   };
+  if(isMultiDay){
+    const meta=ensureUltimateMeta(newManualBooking);
+    meta.eventDays=eventDays;
+    meta.multiDayEvent=true;
+    meta.eventRangeStart=eventDays[0].date;
+    meta.eventRangeEnd=eventDays[eventDays.length-1].date;
+  }
   bookings[finalPkgId].push(newManualBooking);
   saveLocalCache();
   showSaveBanner('Saving booking…');
   const saved=await saveBookingToSheet(newManualBooking);
   if(!saved){
     bookings[finalPkgId]=(bookings[finalPkgId]||[]).filter(x=>x.ref!==ref);
-    if(!mbHistorical)await adminReleaseDate(ref);
+    if(!mbHistorical){if(isMultiDay)await releaseEventSchedule(eventDays,ref);else await adminReleaseDate(ref);}
     saveLocalCache();renderAdmin();
     errEl.textContent='The booking could not be saved to Supabase. Nothing was booked. Please check your connection and try again.';
     errEl.classList.remove('hidden');showSaveBanner('⚠️ Booking was not saved');return;
@@ -2275,10 +2488,10 @@ async function addManualBooking(){
   document.getElementById("mb-nerf-section").classList.add("hidden");
   document.getElementById("mb-returning-customer").value="";
   document.getElementById("mb-customer-notes-section").classList.add("hidden");
-  mbNerfType=null;mbHistorical=false;const hist=document.getElementById("mb-historical");if(hist)hist.checked=false;
+  mbNerfType=null;mbHistorical=false;const md=document.getElementById("mb-multiday");if(md)md.checked=false;document.getElementById("mb-multiday-section")?.classList.add("hidden");const mdd=document.getElementById("mb-multiday-days");if(mdd)mdd.innerHTML="";const hist=document.getElementById("mb-historical");if(hist)hist.checked=false;
   renderAdmin();buildReturningCustomerList();
   setTimeout(()=>document.getElementById("bookings-list")?.scrollIntoView({behavior:"smooth"}),100);
-  showSaveBanner(`✅ Booking saved for ${newManualBooking.name} on ${date}`);
+  showSaveBanner(`✅ Booking saved for ${newManualBooking.name}${isMultiDay?` · ${eventDays.length} event days`:` on ${date}`}`);
 }
 
 function showSaveBanner(msg){
@@ -2879,6 +3092,63 @@ function openPrintReport(){
   tr:nth-child(even){background:#fafafa;}
   .footer{margin-top:30px;font-size:11px;color:#888;}
   @media print{ button{display:none;} }
+
+/* ===== v10.8 RESPONSIVE / ALIGNMENT FIXES ===== */
+#view-admin .page{max-width:1400px;width:100%;overflow-x:hidden}
+#view-admin .admin-card,
+#view-admin .v4-section,
+#view-admin .ultimate-card{min-width:0}
+#view-admin .table-scroll{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+#view-admin table{width:100%;border-collapse:collapse}
+#view-admin .records-table{min-width:900px;table-layout:auto}
+#view-admin .records-table th,
+#view-admin .records-table td{vertical-align:top;white-space:normal;word-break:break-word;overflow-wrap:anywhere}
+#view-admin .records-table th{white-space:nowrap}
+#view-admin .records-table td button,
+#view-admin .records-table td .record-action{white-space:nowrap}
+#view-admin .ops-row{grid-template-columns:minmax(110px,.85fr) minmax(180px,1.5fr) minmax(140px,1.15fr) minmax(90px,.7fr) minmax(95px,.75fr) minmax(80px,.65fr) minmax(70px,.55fr);align-items:start}
+#view-admin .ops-row>div{min-width:0;overflow-wrap:anywhere}
+#view-admin .admin-command-nav{display:flex;gap:8px;flex-wrap:wrap;overflow:visible}
+#view-admin .admin-nav-btn{flex:0 0 auto}
+#view-admin .ultimate-grid,
+#view-admin .settings-grid,
+#view-admin .v4-modal-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+#view-admin .v4-modal-card{max-height:90vh;overflow:hidden}
+#view-admin .v4-modal-body{overflow-y:auto;overflow-x:hidden;max-height:calc(90vh - 72px)}
+#view-admin .mini-entry,
+#view-admin .mini-ledger-row{gap:10px;align-items:flex-start;flex-wrap:wrap}
+#view-admin .settings-list{min-width:0}
+#view-admin .settings-tag{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#view-admin input,
+#view-admin select,
+#view-admin textarea{max-width:100%;min-width:0}
+#view-admin .input-group{min-width:0}
+#view-admin .section-head{align-items:flex-start}
+#view-admin .section-head>*{min-width:0}
+#view-admin .attention-item,
+#view-admin .metric-card{min-width:0}
+#view-admin .metric-value{overflow-wrap:anywhere}
+#view-admin .booking-card,
+#view-admin .customer-row{min-width:0}
+@media(max-width:980px){
+  #view-admin .records-table{min-width:780px}
+  #view-admin .ops-row{grid-template-columns:1fr 1.4fr 1fr .7fr .7fr .7fr}
+  #view-admin .ops-row>div:last-child{grid-column:1/-1}
+}
+@media(max-width:700px){
+  #view-admin .page{padding-left:12px;padding-right:12px}
+  #view-admin .records-table{min-width:720px;font-size:11px}
+  #view-admin .ops-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 0}
+  #view-admin .ops-row.header{display:none}
+  #view-admin .ops-row>div{padding:2px 0}
+  #view-admin .ultimate-grid,
+  #view-admin .settings-grid,
+  #view-admin .v4-modal-grid{grid-template-columns:1fr}
+  #view-admin .v4-modal-card{width:96vw!important}
+  #view-admin .admin-command-nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}
+  #view-admin .admin-nav-btn{white-space:nowrap}
+  #view-admin .section-head{flex-direction:column}
+}
 </style></head>
 <body>
   <h1>VIP Party Pods LLC — Booking Report</h1>
@@ -3283,7 +3553,7 @@ function getMeta(b){
   if(!b.checklist.__meta||typeof b.checklist.__meta!=="object") b.checklist.__meta={};
   const m=b.checklist.__meta;
   if(!Array.isArray(m.payments)) m.payments=[];
-  if(!Array.isArray(m.audit)) m.audit=[];
+  if(!Array.isArray(m.audit)) m.audit=[]; if(!Array.isArray(m.eventDays)) m.eventDays=[];
   if(!m.bookingStatus) m.bookingStatus=b.completed?"completed":((b.paymentStatus==="cash"||b.paymentStatus==="check"||b.paymentStatus==="stripe")?"confirmed":"awaiting");
   if(!m.contractStatus) m.contractStatus=b.source==="online"?"signed":(b.isEvent?"not-sent":"not-required");
   if(!m.agreementType) m.agreementType=b.isEvent?"Event / Vendor Agreement":"Rental Agreement";
@@ -3382,7 +3652,7 @@ function openBookingRecord(pkgId,ref){
   const fields={
     'edit-name':b.name||'','edit-org':b.orgName||'','edit-phone':b.phone||'','edit-email':b.email||'','edit-address':b.address||'','edit-date':b.dateKey||'','edit-time':b.startTime||'','edit-attraction':b.attraction||b.pkgName||'','edit-duration':b.duration||'','edit-booking-status':m.bookingStatus,'edit-payment-status':b.paymentStatus||'unpaid','edit-original-price':m.originalPrice||b.price||0,'edit-discount-code':m.discountCode||'','edit-discount-amount':m.discountAmount||0,'edit-price':b.price||0,'edit-amount-paid':b.amountPaid||0,'edit-contract-status':m.contractStatus,'edit-balance-due':m.balanceDueDate||'','edit-notes':b.notes||''};
   Object.entries(fields).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v;});
-  renderRecordHistories(b);previewAdjustedPrice();document.getElementById('booking-record-modal').classList.remove('hidden');
+  renderRecordHistories(b);renderEventScheduleRecord(b);previewAdjustedPrice();document.getElementById('booking-record-modal').classList.remove('hidden');
 }
 function previewAdjustedPrice(){
   const original=Number(document.getElementById('edit-original-price')?.value||0);
@@ -3627,16 +3897,115 @@ function removeRosterItem(type,i){ultimateSettings[type].splice(i,1);persistUlti
 function renderUltimate(){loadUltimateSettings();const all=allBookingsV4();all.forEach(ensureUltimateMeta);renderUltimateSettings();renderOperations(all);renderProfitability(all);renderTaskCenter(all);}
 function renderOperations(all){const now=new Date();const upcoming=all.filter(b=>!b.completed&&!['cancelled','archived'].includes(ensureUltimateMeta(b).bookingStatus)&&b.dateKey&&new Date(b.dateKey+'T23:59:59')>=now).sort((a,b)=>String(a.dateKey).localeCompare(String(b.dateKey))).slice(0,20);const staffAssigned=upcoming.filter(b=>ensureUltimateMeta(b).staff.length).length;const equipped=upcoming.filter(b=>ensureUltimateMeta(b).equipment.length).length;const openTasks=upcoming.reduce((s,b)=>s+ensureUltimateMeta(b).tasks.filter(t=>!t.done).length,0);const ready=upcoming.filter(b=>getMeta(b).bookingStatus==='ready').length;const sum=document.getElementById('operations-summary');if(sum)sum.innerHTML=`<div class="ultimate-card"><div class="uc-label">Upcoming</div><div class="uc-value">${upcoming.length}</div><div class="uc-sub">Next active rentals / events</div></div><div class="ultimate-card"><div class="uc-label">Staff Assigned</div><div class="uc-value" style="color:#38BDF8">${staffAssigned}/${upcoming.length||0}</div><div class="uc-sub">Upcoming records with staff assigned</div></div><div class="ultimate-card"><div class="uc-label">Loadout Added</div><div class="uc-value" style="color:#A78BFA">${equipped}/${upcoming.length||0}</div><div class="uc-sub">Equipment assigned</div></div><div class="ultimate-card"><div class="uc-label">Open Tasks</div><div class="uc-value" style="color:#FCD34D">${openTasks}</div><div class="uc-sub">Operations follow-ups remaining</div></div><div class="ultimate-card"><div class="uc-label">Marked Ready</div><div class="uc-value" style="color:#34D399">${ready}</div><div class="uc-sub">Ready for event day</div></div>`;const list=document.getElementById('operations-list');if(!list)return;list.innerHTML=`<div class="ops-row header"><div>Date</div><div>Booking / Event</div><div>Attraction</div><div>Staff</div><div>Equipment</div><div>Tasks</div><div></div></div>`+upcoming.map(b=>{const m=ensureUltimateMeta(b);const open=m.tasks.filter(t=>!t.done).length;return `<div class="ops-row"><div><strong>${safeText(b.dateKey)}</strong><br><span style="color:rgba(255,255,255,.35)">${safeText(b.startTime||'')}</span></div><div><strong>${safeText(b.isEvent?(b.orgName||b.name):b.name)}</strong><br><span style="color:#A78BFA">${safeText(b.ref)}</span></div><div>${safeText(b.attraction||b.pkgName||'—')}</div><div><span class="ops-chip">👷 ${m.staff.length}</span></div><div><span class="ops-chip">🎪 ${m.equipment.length}</span></div><div><span class="ops-chip">✅ ${open}</span></div><div><button class="record-action" onclick="openBookingRecord('${b.pkgId}','${b.ref}')">Open</button></div></div>`;}).join('')||'<div style="font-size:12px;color:rgba(255,255,255,.3);padding:15px 0">No upcoming bookings.</div>';}
 function renderProfitability(all){const active=all.filter(b=>isFinanciallyActiveBooking(b));let booked=0,collected=0,expenses=0;active.forEach(b=>{booked+=Number(b.price)||0;collected+=getCollected(b);expenses+=getExpenses(b)});const profit=collected-expenses,margin=collected?profit/collected*100:0;const sum=document.getElementById('profit-summary');if(sum)sum.innerHTML=`<div class="ultimate-card"><div class="uc-label">Booked Revenue</div><div class="uc-value">${money(booked)}</div><div class="uc-sub">Contracted value</div></div><div class="ultimate-card"><div class="uc-label">Collected Cash</div><div class="uc-value" style="color:#34D399">${money(collected)}</div><div class="uc-sub">Payments recorded</div></div><div class="ultimate-card"><div class="uc-label">Expenses</div><div class="uc-value" style="color:#F87171">${money(expenses)}</div><div class="uc-sub">Event / rental costs recorded</div></div><div class="ultimate-card"><div class="uc-label">Operating Profit</div><div class="uc-value" style="color:#A78BFA">${money(profit)}</div><div class="uc-sub">Collected minus recorded expenses</div></div><div class="ultimate-card"><div class="uc-label">Margin</div><div class="uc-value">${margin.toFixed(1)}%</div><div class="uc-sub">Based on collected revenue</div></div>`;const body=document.getElementById('profit-record-body');if(body)body.innerHTML=[...active].sort((a,b)=>String(b.dateKey).localeCompare(String(a.dateKey))).map(b=>{const c=getCollected(b),e=getExpenses(b),p=c-e,mar=c?p/c*100:0;return `<tr><td>${safeText(b.dateKey||'')}</td><td><strong>${safeText(b.isEvent?(b.orgName||b.name):b.name)}</strong><br><span style="color:#A78BFA;font-size:10px">${safeText(b.ref)}</span></td><td>${money(b.price)}</td><td style="color:#34D399">${money(c)}</td><td style="color:#F87171">${money(e)}</td><td style="font-weight:800">${money(p)}</td><td>${mar.toFixed(1)}%</td><td><button class="record-action" onclick="openBookingRecord('${b.pkgId}','${b.ref}')">Open</button></td></tr>`}).join('')||'<tr><td colspan="8">No records.</td></tr>';}
-function autoTasksForBooking(b){const m=ensureUltimateMeta(b),auto=[];if(isAbandonedCheckout(b)||b.completed||['completed','cancelled','archived'].includes(m.bookingStatus))return auto;if(getBalance(b)>0)auto.push({auto:true,text:`Collect remaining balance (${money(getBalance(b))})`,due:m.balanceDueDate||b.dateKey,done:false,type:'Balance'});if(b.isEvent&&m.contractStatus!=='signed')auto.push({auto:true,text:'Get event/vendor agreement signed',due:b.dateKey,done:false,type:'Contract'});if(b.dateKey&&getMeta(b).bookingStatus!=='ready')auto.push({auto:true,text:'Complete prep / mark Ready for Event',due:b.dateKey,done:false,type:'Prep'});return auto;}
+function autoTasksForBooking(b){const m=ensureUltimateMeta(b),auto=[];if(isAbandonedCheckout(b)||['cancelled','archived'].includes(m.bookingStatus))return auto;if(getBalance(b)>0)auto.push({auto:true,text:`Collect remaining balance (${money(getBalance(b))})`,due:m.balanceDueDate||b.dateKey,done:false,type:'Balance'});if(b.completed||m.bookingStatus==='completed')return auto;if(b.isEvent&&m.contractStatus!=='signed')auto.push({auto:true,text:'Get event/vendor agreement signed',due:b.dateKey,done:false,type:'Contract'});if(b.dateKey&&getMeta(b).bookingStatus!=='ready')auto.push({auto:true,text:'Complete prep / mark Ready for Event',due:b.dateKey,done:false,type:'Prep'});return auto;}
 function allTaskRows(all){const rows=[];all.forEach(b=>{const m=ensureUltimateMeta(b);[...autoTasksForBooking(b),...m.tasks].forEach((t,i)=>rows.push({b,t,index:i-autoTasksForBooking(b).length,custom:!t.auto}));});return rows;}
-function renderTaskCenter(all){const rows=allTaskRows(all),open=rows.filter(x=>!x.t.done),overdue=open.filter(x=>x.t.due&&x.t.due<toDateKey(new Date())).length,due7=open.filter(x=>{if(!x.t.due)return false;const d=(new Date(x.t.due+'T23:59:59')-new Date())/86400000;return d>=0&&d<=7}).length;const sum=document.getElementById('task-summary');if(sum)sum.innerHTML=`<div class="ultimate-card"><div class="uc-label">Open Tasks</div><div class="uc-value">${open.length}</div></div><div class="ultimate-card"><div class="uc-label">Due Next 7 Days</div><div class="uc-value" style="color:#FCD34D">${due7}</div></div><div class="ultimate-card"><div class="uc-label">Overdue</div><div class="uc-value" style="color:#F87171">${overdue}</div></div>`;const body=document.getElementById('task-record-body');if(body)body.innerHTML=open.sort((a,b)=>String(a.t.due||'9999').localeCompare(String(b.t.due||'9999'))).slice(0,100).map(x=>`<tr><td>${safeText(x.t.due||'—')}</td><td><span style="color:#A78BFA;font-weight:700">${safeText(x.b.ref)}</span></td><td>${safeText(x.b.isEvent?(x.b.orgName||x.b.name):x.b.name)}</td><td>${safeText(x.t.text)}</td><td>${x.t.auto?'<span style="color:#38BDF8">Automatic</span>':'<span style="color:#FCD34D">Custom</span>'}</td><td><button class="record-action" onclick="openBookingRecord('${x.b.pkgId}','${x.b.ref}')">Open</button></td></tr>`).join('')||'<tr><td colspan="6">Nothing needs attention.</td></tr>';}
+function renderTaskCenter(all){const rows=allTaskRows(all),open=rows.filter(x=>!x.t.done),overdue=open.filter(x=>x.t.due&&x.t.due<toDateKey(new Date())).length,due7=open.filter(x=>{if(!x.t.due)return false;const d=(new Date(x.t.due+'T23:59:59')-new Date())/86400000;return d>=0&&d<=7}).length;const sum=document.getElementById('task-summary');if(sum)sum.innerHTML=`<div class="ultimate-card"><div class="uc-label">Open Tasks</div><div class="uc-value">${open.length}</div></div><div class="ultimate-card"><div class="uc-label">Due Next 7 Days</div><div class="uc-value" style="color:#FCD34D">${due7}</div></div><div class="ultimate-card"><div class="uc-label">Overdue</div><div class="uc-value" style="color:#F87171">${overdue}</div></div>`;const body=document.getElementById('task-record-body');if(body)body.innerHTML=open.sort((a,b)=>String(a.t.due||'9999').localeCompare(String(b.t.due||'9999'))).slice(0,100).map(x=>`<tr><td>${safeText(x.t.due||'—')}</td><td><span style="color:#A78BFA;font-weight:700">${safeText(x.b.ref)}</span></td><td>${safeText(x.b.isEvent?(x.b.orgName||x.b.name):x.b.name)}</td><td>${safeText(x.t.text)}</td><td>${x.t.auto?'<span style="color:#38BDF8">Automatic</span>':'<span style="color:#FCD34D">Custom</span>'}</td><td>${x.custom?`<button class="record-action" onclick="openBookingRecord('${x.b.pkgId}','${x.b.ref}');setTimeout(()=>toggleCustomTask(${x.index}),50)">✓ Done</button> `:''}<button class="record-action" onclick="openBookingRecord('${x.b.pkgId}','${x.b.ref}')">Open</button></td></tr>`).join('')||'<tr><td colspan="6">Nothing needs attention.</td></tr>';}
 
 // Extend booking record modal histories with operating details.
 const _renderRecordHistoriesBase=renderRecordHistories;
 renderRecordHistories=function(b){_renderRecordHistoriesBase(b);const m=ensureUltimateMeta(b);const ex=document.getElementById('record-expense-history');if(ex)ex.innerHTML=m.expenses.length?m.expenses.map((x,i)=>`<div class="mini-entry"><div><strong>${safeText(x.category||'Expense')}</strong><div style="color:rgba(255,255,255,.38);margin-top:3px">${safeText(x.note||'')} · ${fmtDate(String(x.at||'').slice(0,10))}</div></div><div><strong style="color:#F87171">${money(x.amount)}</strong> <button class="record-action" onclick="removeMetaEntry('expenses',${i})">×</button></div></div>`).join(''):'<div style="font-size:11px;color:rgba(255,255,255,.3)">No expenses recorded.</div>';const c=getCollected(b),e=getExpenses(b),p=c-e;const ps=document.getElementById('record-profit-summary');if(ps)ps.innerHTML=`<div class="ultimate-card"><div class="uc-label">Collected</div><div class="uc-value" style="color:#34D399">${money(c)}</div></div><div class="ultimate-card"><div class="uc-label">Expenses</div><div class="uc-value" style="color:#F87171">${money(e)}</div></div><div class="ultimate-card"><div class="uc-label">Profit</div><div class="uc-value" style="color:#A78BFA">${money(p)}</div></div>`;renderTagHistory('record-staff-history',m.staff,'staff');renderTagHistory('record-equipment-history',m.equipment,'equipment');const docs=document.getElementById('record-document-history');if(docs)docs.innerHTML=m.documents.length?m.documents.map((x,i)=>`<div class="mini-entry"><div><strong>📎 ${safeText(x.name)}</strong><div style="color:rgba(255,255,255,.38);margin-top:3px">${safeText(x.type||'Document')}</div></div><div>${x.url?`<a class="record-action" target="_blank" rel="noopener" href="${safeText(x.url)}">Open</a>`:''} <button class="record-action" onclick="removeMetaEntry('documents',${i})">×</button></div></div>`).join(''):'<div style="font-size:11px;color:rgba(255,255,255,.3)">No document references saved.</div>';const tasks=document.getElementById('record-task-history');if(tasks){const allT=[...autoTasksForBooking(b),...m.tasks];tasks.innerHTML=allT.length?allT.map((t,i)=>`<div class="mini-entry"><div><strong>${t.done?'✅':'◻️'} ${safeText(t.text)}</strong><div style="color:rgba(255,255,255,.38);margin-top:3px">Due: ${safeText(t.due||'—')} ${t.auto?'· Automatic':''}</div></div><div>${!t.auto?`<button class="record-action" onclick="toggleCustomTask(${i-autoTasksForBooking(b).length})">${t.done?'Reopen':'Done'}</button> <button class="record-action" onclick="removeMetaEntry('tasks',${i-autoTasksForBooking(b).length})">×</button>`:''}</div></div>`).join(''):'<div style="font-size:11px;color:rgba(255,255,255,.3)">No tasks.</div>';}}
 function renderTagHistory(id,arr,type){const el=document.getElementById(id);if(el)el.innerHTML=arr.length?arr.map((x,i)=>`<span class="settings-tag">${safeText(x)} <button onclick="removeMetaEntry('${type}',${i})" style="background:none;border:0;color:#F87171;cursor:pointer">×</button></span>`).join(''):'<span style="font-size:11px;color:rgba(255,255,255,.3)">None assigned.</span>';}
 function addExpenseRecord(){const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;const amount=parseFloat(prompt('Expense amount:','0'));if(!(amount>0))return;const category=prompt('Expense category (Labor, Fuel, Vendor Fee, Supplies, Equipment, Other):','Other')||'Other';const note=prompt('Expense note / description:','')||'';ensureUltimateMeta(b).expenses.unshift({at:new Date().toISOString(),amount,category,note});persistBooking(b,`Expense recorded: ${money(amount)} · ${category}`);openBookingRecord(activeRecordPkg,activeRecordRef);showSaveBanner('🧾 Expense recorded');}
-function assignRosterToBooking(type){const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;loadUltimateSettings();const roster=ultimateSettings[type]||[];let item='';if(roster.length){item=prompt(`Enter ${type==='staff'?'staff member':'equipment'} exactly or choose from:\n\n${roster.join('\n')}`,roster[0])||'';}else item=prompt(type==='staff'?'Staff member name:':'Equipment item:')||'';if(!item.trim())return;const m=ensureUltimateMeta(b);if(!m[type].includes(item.trim()))m[type].push(item.trim());persistBooking(b,`${type==='staff'?'Staff assigned':'Equipment added'}: ${item.trim()}`);openBookingRecord(activeRecordPkg,activeRecordRef);}
+let staffPickerBookingRef=null;
+
+function openStaffPicker(){
+  const b=findLiveBooking(activeRecordPkg,activeRecordRef);
+  if(!b)return;
+  loadUltimateSettings();
+  staffPickerBookingRef=b.ref;
+  const meta=ensureUltimateMeta(b);
+  const roster=[...(ultimateSettings.staff||[])];
+  const assigned=new Set(meta.staff||[]);
+  assigned.forEach(name=>{if(!roster.includes(name))roster.push(name);});
+
+  const list=document.getElementById('staff-picker-list');
+  if(!list)return;
+  list.innerHTML=roster.length?roster.map(name=>`
+    <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.025);cursor:pointer;">
+      <input type="checkbox" class="staff-picker-check" value="${safeText(name)}" ${assigned.has(name)?'checked':''} style="width:18px;height:18px;">
+      <span style="font-size:13px;font-weight:700;">${safeText(name)}</span>
+    </label>`).join('')
+    :'<div style="font-size:12px;color:rgba(255,255,255,.4);grid-column:1/-1;">No staff members are in your roster yet. Click “Add New Staff Member” below.</div>';
+
+  document.getElementById('staff-picker-modal').classList.remove('hidden');
+}
+
+function closeStaffPicker(){
+  document.getElementById('staff-picker-modal')?.classList.add('hidden');
+  staffPickerBookingRef=null;
+}
+
+function addNewStaffFromPicker(){
+  loadUltimateSettings();
+  const name=prompt('Staff member name:');
+  if(!name||!name.trim())return;
+  const clean=name.trim();
+  if(!(ultimateSettings.staff||[]).includes(clean)){
+    ultimateSettings.staff.push(clean);
+    persistUltimateSettings();
+    renderUltimateSettings();
+  }
+  const b=findLiveBooking(activeRecordPkg,activeRecordRef);
+  if(b){
+    const meta=ensureUltimateMeta(b);
+    if(!meta.staff.includes(clean))meta.staff.push(clean);
+    openStaffPicker();
+  }
+}
+
+async function saveStaffPicker(){
+  const b=findLiveBooking(activeRecordPkg,activeRecordRef);
+  if(!b||b.ref!==staffPickerBookingRef)return;
+  const selected=[...document.querySelectorAll('.staff-picker-check:checked')].map(x=>x.value);
+  const meta=ensureUltimateMeta(b);
+  const before=[...(meta.staff||[])];
+  meta.staff=[...new Set(selected)];
+
+  let msg='Staff assignment updated';
+  const added=meta.staff.filter(x=>!before.includes(x));
+  const removed=before.filter(x=>!meta.staff.includes(x));
+  if(added.length)msg+=` · Added: ${added.join(', ')}`;
+  if(removed.length)msg+=` · Removed: ${removed.join(', ')}`;
+  addAudit(b,msg);
+
+  showSaveBanner('Saving staff assignments…');
+  const ok=await saveBookingToSheet(b);
+  if(!ok){
+    meta.staff=before;
+    showSaveBanner('⚠️ Staff changes were not saved');
+    alert('Staff assignments could not be saved to Supabase.');
+    return;
+  }
+
+  await refreshBookingFromSupabase(b.ref);
+  renderAdmin();
+  try{renderV4Records();}catch(e){}
+  try{renderUltimate();}catch(e){}
+  const fresh=findBookingAnywhere?findBookingAnywhere(b.ref):findLiveBooking(activeRecordPkg,b.ref);
+  if(fresh){
+    activeRecordPkg=fresh.pkgId||activeRecordPkg;
+    activeRecordRef=fresh.ref;
+    openBookingRecord(activeRecordPkg,activeRecordRef);
+  }
+  closeStaffPicker();
+  showSaveBanner('✅ Staff assignments saved');
+}
+
+function assignRosterToBooking(type){
+  if(type==='staff'){openStaffPicker();return;}
+  const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;
+  loadUltimateSettings();
+  const roster=ultimateSettings[type]||[];
+  let item='';
+  if(roster.length){
+    item=prompt(`Enter equipment exactly or choose from:\n\n${roster.join('\n')}`,roster[0])||'';
+  }else item=prompt('Equipment item:')||'';
+  if(!item.trim())return;
+  const meta=ensureUltimateMeta(b);
+  if(!meta[type].includes(item.trim()))meta[type].push(item.trim());
+  persistBooking(b,`Equipment added: ${item.trim()}`);
+  openBookingRecord(activeRecordPkg,activeRecordRef);
+}
 function addDocumentRecord(){const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;const name=prompt('Document name (e.g. Signed Festival Contract, COI, Invoice):');if(!name||!name.trim())return;const type=prompt('Document type:','Contract')||'Document';const url=prompt('Optional link/URL to the document (leave blank if you are only logging the record):','')||'';ensureUltimateMeta(b).documents.unshift({at:new Date().toISOString(),name:name.trim(),type,url:url.trim()});persistBooking(b,`Document logged: ${name.trim()}`);openBookingRecord(activeRecordPkg,activeRecordRef);}
 function addTaskRecord(){const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;const text=prompt('Task / follow-up:');if(!text||!text.trim())return;const due=prompt('Due date (YYYY-MM-DD, optional):',b.dateKey||'')||'';ensureUltimateMeta(b).tasks.unshift({at:new Date().toISOString(),text:text.trim(),due:due.trim(),done:false});persistBooking(b,`Task added: ${text.trim()}`);openBookingRecord(activeRecordPkg,activeRecordRef);}
 function toggleCustomTask(i){const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;const t=ensureUltimateMeta(b).tasks[i];if(!t)return;t.done=!t.done;persistBooking(b,`Task ${t.done?'completed':'reopened'}: ${t.text}`);openBookingRecord(activeRecordPkg,activeRecordRef);}
@@ -3674,7 +4043,7 @@ cancelBooking=async function(pkgId,ref){
     alert('The cancellation could not be saved to Supabase. The date was NOT released.');
     showSaveBanner('⚠️ Cancellation was not saved');return;
   }
-  await adminReleaseDate(ref);
+  const days=ensureUltimateMeta(b).eventDays||[];if(days.length)await releaseEventSchedule(days,ref);else await adminReleaseDate(ref);
   await refreshBookingFromSupabase(ref);
   renderAdmin();showSaveBanner('🚫 Booking cancelled — history retained and date released');
 };
