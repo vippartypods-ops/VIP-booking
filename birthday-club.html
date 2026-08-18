@@ -27,7 +27,7 @@
         <form id="birthday-form">
           <div><label>Your Name *</label><input id="parent_name" required autocomplete="name" placeholder="Your name"></div>
           <div class="row"><div><label>Email *</label><input id="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div><label>Phone *</label><input id="phone" type="tel" required autocomplete="tel" placeholder="(423) 555-1234"></div></div>
-          <div class="row"><div><label>Birthday Month *</label><select id="birthday_month" required><option value="">Choose month</option><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></div><div><label>Age Range</label><select id="age_range"><option value="">Choose one</option><option>3–5</option><option>6–8</option><option>9–12</option><option>13–17</option><option>18+</option></select></div></div>
+          <div><label>Birthday Month *</label><select id="birthday_month" required><option value="">Choose month</option><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></div>
           <div class="row"><div><label>ZIP Code</label><input id="zip_code" inputmode="numeric" maxlength="10" placeholder="ZIP code"></div><div><label>Interested In</label><select id="attraction_interest"><option value="Not Sure">Not Sure Yet</option><option value="Battle Bash Pod">Battle Bash Pod</option><option value="Maze Chaser">Maze Chaser</option><option value="Glow Up Pod">Glow Up Pod</option><option value="Inflatable Party Tent">Inflatable Party Tent</option></select></div></div>
           <label style="display:flex;gap:9px;align-items:flex-start;font-weight:500;color:#b9adbf"><input id="consent" type="checkbox" required style="width:auto;margin-top:2px"> I agree that VIP Party Pods may contact me about Birthday Club information and birthday party booking opportunities.</label>
           <button class="btn" id="submit-btn" type="submit">JOIN VIP BIRTHDAY CLUB</button>
@@ -38,8 +38,12 @@
       <div class="success" id="success">
         <div class="icon">🎉</div><h2>You’re in!</h2>
         <p>Welcome to the <strong>VIP Birthday Club</strong>. Your VIP Birthday Club discount is now unlocked for your next eligible birthday party booking. You can use it whenever you’re ready to book—the party does not have to take place during your birthday month. Just use the same email address or phone number you used here so your membership can be recognized automatically.</p>
-        <div class="offer"><strong>Ready to plan the party?</strong><br><span style="color:#bfb2c8;font-size:13px">Visit VIP Party Pods when you’re ready to check your date and choose your party experience.</span></div>
-        <button class="btn" type="button" onclick="location.reload()">DONE</button>
+        <div class="offer"><strong>Ready to plan the party?</strong><br><span style="color:#bfb2c8;font-size:13px">You can book your party now or visit VIP Party Pods to check out everything we offer.</span></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px">
+          <button class="btn" type="button" onclick="location.reload()" style="flex:1;min-width:150px">DONE</button>
+          <button class="btn" type="button" onclick="window.location.href='./'" style="flex:1;min-width:150px">BOOK NOW</button>
+        </div>
+        <a href="https://www.vippartypods.com" target="_blank" rel="noopener" style="display:block;margin-top:12px;text-decoration:none"><button class="btn" type="button" style="width:100%;background:#ffffff10;border:1px solid #ffffff24;box-shadow:none">VISIT OUR WEBSITE</button></a>
       </div>
     </section>
   </div>
@@ -51,7 +55,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const H={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json',Prefer:'return=minimal'};
 document.getElementById('birthday-form').addEventListener('submit',async e=>{
   e.preventDefault();const btn=document.getElementById('submit-btn'),msg=document.getElementById('msg');
-  const payload={parent_name:parent_name.value.trim(),email:email.value.trim(),phone:phone.value.trim(),birthday_month:Number(birthday_month.value),age_range:age_range.value||null,zip_code:zip_code.value.trim()||null,attraction_interest:attraction_interest.value||'Not Sure',consent:consent.checked,status:'New'};
+  const payload={parent_name:parent_name.value.trim(),email:email.value.trim(),phone:phone.value.trim(),birthday_month:Number(birthday_month.value),zip_code:zip_code.value.trim()||null,attraction_interest:attraction_interest.value||'Not Sure',consent:consent.checked,status:'New'};
   if(!payload.parent_name||!payload.email||!payload.phone||!payload.birthday_month||!payload.consent){msg.style.color='#fb7185';msg.textContent='Please complete all required fields.';return;}
   btn.disabled=true;btn.textContent='JOINING…';msg.textContent='';
   try{
