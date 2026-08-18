@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIP Party Pods — Booking & Business Management</title><meta name="theme-color" content="#07060F"><style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#07060F;color:#F0ECF8;font-family:Inter,Arial,sans-serif}.appbar{position:sticky;top:0;z-index:99999;background:rgba(10,8,22,.98);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,.24)}.appbar-in{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.brand{font-size:12px;font-weight:850;letter-spacing:.22em;color:#A78BFA;text-transform:uppercase}.brand small{display:block;font-size:9px;letter-spacing:.13em;color:rgba(255,255,255,.35);margin-top:4px}.topnav{display:flex;gap:7px;flex-wrap:wrap}.topnav button{border:1px solid rgba(167,139,250,.22);background:rgba(124,58,237,.08);color:#E9D5FF;padding:9px 11px;border-radius:9px;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.04em}.topnav button.active{background:linear-gradient(135deg,#7C3AED,#A855F7);border-color:transparent;color:#fff}.status{max-width:1200px;margin:0 auto;padding:8px 16px 0;font-size:10px;color:rgba(255,255,255,.32)}.framewrap{width:100%;height:calc(100vh - 82px);min-height:720px}iframe{border:0;width:100%;height:100%;display:block;background:#07060F}@media(max-width:700px){.framewrap{height:calc(100vh - 125px)}.appbar-in{align-items:flex-start}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#07060F;color:#F0ECF8;font-family:Inter,Arial,sans-serif}.appbar{position:sticky;top:0;z-index:99999;background:rgba(10,8,22,.98);border-bottom:1px solid rgba(255,255,255,.08);padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,.24)}.appbar-in{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.brand{font-size:12px;font-weight:850;letter-spacing:.22em;color:#A78BFA;text-transform:uppercase}.brand small{display:block;font-size:9px;letter-spacing:.13em;color:rgba(255,255,255,.35);margin-top:4px}.topnav{display:flex;gap:7px;flex-wrap:wrap}.topnav button{border:1px solid rgba(167,139,250,.22);background:rgba(124,58,237,.08);color:#E9D5FF;padding:9px 11px;border-radius:9px;font-size:10px;font-weight:800;cursor:pointer;letter-spacing:.04em}.topnav button.active{background:linear-gradient(135deg,#7C3AED,#A855F7);border-color:transparent;color:#fff}.status{max-width:1200px;margin:0 auto;padding:8px 16px 0;font-size:10px;color:rgba(255,255,255,.32)}.framewrap{width:100%;height:calc(100vh - 62px);min-height:720px}iframe{border:0;width:100%;height:100%;display:block;background:#07060F}@media(max-width:700px){.framewrap{height:calc(100vh - 92px)}.appbar-in{align-items:flex-start}}
 
 .owner-access{
  position:fixed;right:12px;bottom:10px;z-index:50;
@@ -13,8 +13,8 @@
  opacity:.9;background:rgba(100,100,115,.35);color:rgba(255,255,255,.65)
 }
 </style></head><body>
-<div class="appbar"><div class="appbar-in"><div class="brand">VIP Party Pods<small>Booking & Event Management</small></div><div class="topnav"><button id="nav-book" onclick="VIP_APP.openCustomer('book')">BOOK A PARTY</button><button id="nav-quote" onclick="VIP_APP.openCustomer('quote')">EVENT QUOTE</button><button id="nav-portal" onclick="VIP_APP.openCustomer('portal')">MY BOOKING</button></div></div></div>
-<div class="status" id="shell-status">Book parties, request event quotes, manage reservations, or access owner tools.</div><div class="framewrap"><iframe id="vip-frame" title="VIP Party Pods"></iframe></div><button id="nav-admin" class="owner-access" onclick="VIP_APP.openAdmin()" title="Owner access">OWNER</button>
+<div class="appbar"><div class="appbar-in"><div class="brand">VIP Party Pods Booking</div><div class="topnav"><button id="nav-book" onclick="VIP_APP.openCustomer('book')">BOOK A PARTY</button><button id="nav-quote" onclick="VIP_APP.openCustomer('quote')">REQUEST A QUOTE</button></div></div></div>
+<div id="shell-status" style="display:none"></div><div class="framewrap"><iframe id="vip-frame" title="VIP Party Pods"></iframe></div><button id="nav-admin" class="owner-access" onclick="VIP_APP.openAdmin()" title="Owner access">OWNER</button>
 <template id="customer-template"><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VIP Party Pods — Book Your Pod</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#07060F;color:#F0ECF8;font-family:Inter,Arial,sans-serif;min-height:100vh}.header{position:sticky;top:0;z-index:50;background:rgba(10,8,22,.97);border-bottom:1px solid rgba(255,255,255,.07);padding:18px 20px}.headin{max-width:980px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}.logo{font-size:13px;font-weight:800;letter-spacing:.24em;color:#A78BFA;text-transform:uppercase}.sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.16em;text-transform:uppercase;margin-top:3px}.nav{display:flex;gap:8px;flex-wrap:wrap}button,.btn{font:inherit;cursor:pointer}.nav button,.btn{border:1px solid rgba(167,139,250,.28);background:rgba(124,58,237,.09);color:#E9D5FF;padding:9px 12px;border-radius:9px;font-size:11px;font-weight:750}.page{max-width:820px;margin:auto;padding:28px 20px 80px}.stepper{display:flex;gap:7px;margin-bottom:28px}.step{height:5px;flex:1;border-radius:9px;background:rgba(255,255,255,.08)}.step.on{background:#7C3AED}h1{font-size:26px;margin:0 0 7px}.muted{color:rgba(255,255,255,.47);font-size:13px;line-height:1.6}.card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:20px;margin:16px 0}.policy{white-space:pre-wrap;max-height:420px;overflow:auto;line-height:1.72;font-size:12px;color:rgba(255,255,255,.68)}.agree{display:flex;gap:10px;align-items:flex-start;margin:16px 0}input[type=checkbox]{width:20px;height:20px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:20px}.primary{border:0;background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;padding:13px 20px;border-radius:10px;font-weight:800}.secondary{background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:12px 18px;border-radius:10px}.pkggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:13px}.pkg{border:2px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);border-radius:14px;padding:18px;cursor:pointer}.pkg.selected{border-color:#8B5CF6;background:rgba(124,58,237,.12)}.pkgname{font-size:17px;font-weight:800}.pkgsub{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.42);margin-top:3px}.desc{font-size:12px;line-height:1.5;color:rgba(255,255,255,.55);margin:10px 0}.inc{font-size:11px;color:rgba(255,255,255,.55);margin:4px 0}.pills{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.pill{border:1px solid rgba(255,255,255,.14);background:transparent;color:rgba(255,255,255,.6);padding:7px 10px;border-radius:8px;font-size:11px;font-weight:750}.pill.selected{border-color:#8B5CF6;background:rgba(124,58,237,.2);color:#E9D5FF}.calhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.day,.dow{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px}.dow{aspect-ratio:auto;color:rgba(255,255,255,.35);font-size:10px;padding:4px}.day{border:1px solid transparent;cursor:pointer}.day:hover{background:rgba(124,58,237,.15)}.day.off{color:rgba(255,255,255,.15);text-decoration:line-through;cursor:default}.day.sel{background:#7C3AED;color:#fff;font-weight:800}.timegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:7px;margin-top:12px}.input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.11);border-radius:9px;padding:12px 13px;color:#fff;font:inherit}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);font-weight:800;margin-bottom:5px}.fg{margin-bottom:11px}.sumrow{display:flex;justify-content:space-between;gap:14px;padding:6px 0;font-size:12px;color:rgba(255,255,255,.6)}.sumrow b{color:#fff}.total{border-top:1px solid rgba(255,255,255,.1);margin-top:8px;padding-top:12px;font-size:18px;font-weight:850}.hidden{display:none!important}.notice{font-size:12px;padding:11px 13px;border-radius:9px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#FCD34D;margin:12px 0}.good{background:rgba(16,185,129,.09);border-color:rgba(16,185,129,.25);color:#34D399}@media(max-width:600px){.grid2{grid-template-columns:1fr}.pkggrid{grid-template-columns:1fr}.headin{align-items:flex-start;flex-direction:column}}
@@ -99,7 +99,7 @@ function dk(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')
 function unavailable(key){return unavailableDates.has(key)}
 async function sync(){
   try{
-    const r=await fetch(SUPA_URL+'/rest/v1/rpc/public_unavailable_dates',{method:'POST',headers:H,body:'{}'});
+    const r=await fetch(SUPA_URL+'/rest/v1/rpc/public_unavailable_dates',{method:'POST',headers:H,cache:'no-store',body:'{}'});
     if(!r.ok)throw new Error('Availability sync failed: '+r.status);
     const rows=await r.json();
     unavailableDates=new Set((rows||[]).map(x=>String(x.date_key||x)));
@@ -163,7 +163,7 @@ async function lookup(){
   const r=pref.value.trim().toUpperCase(),c=pcontact.value.trim();
   if(!r||!c){pmsg.textContent='Please enter your booking reference and email or phone number.';return;}
   try{
-    const res=await fetch(SUPA_URL+'/rest/v1/rpc/lookup_customer_booking',{method:'POST',headers:H,body:JSON.stringify({p_ref:r,p_contact:c})});
+    const res=await fetch(SUPA_URL+'/rest/v1/rpc/lookup_customer_booking',{method:'POST',headers:H,cache:'no-store',body:JSON.stringify({p_ref:r,p_contact:c})});
     if(!res.ok)throw new Error('Lookup failed');
     const data=await res.json();
     const b=Array.isArray(data)?data[0]:data;
@@ -648,6 +648,11 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
       <button class="admin-nav-btn" onclick="jumpAdmin('export-center',this)">⬇️ Export</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('system-settings',this)">⚙️ Settings</button>
     </div>
+    <div id="admin-focus-header" class="hidden" style="display:flex;align-items:center;gap:14px;margin:8px 0 22px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08);">
+      <button type="button" onclick="closeAdminFocus()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.72);padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;">← Back to Dashboard</button>
+      <div id="admin-focus-title" style="font-size:20px;font-weight:800;color:#F0ECF8;">Admin View</div>
+    </div>
+
 
     <div id="command-center" class="v4-section admin-card" style="border-color:rgba(167,139,250,.23);background:linear-gradient(135deg,rgba(124,58,237,.09),rgba(255,255,255,.02));">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
@@ -1200,7 +1205,7 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
         <div class="input-group"><label class="input-label">Balance Due Date</label><input type="date" class="input" id="edit-balance-due"/></div>
         <div class="input-group span2"><label class="input-label">Booking Notes</label><textarea class="input" id="edit-notes" rows="3"></textarea></div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 6px;"><button class="quick-add-btn" onclick="saveBookingRecordEdits()">Save Booking Changes</button><button class="record-action" onclick="applySuggestedAdjustedPrice()">Apply Discount to Total</button><button class="record-action" onclick="addPaymentRecord()">＋ Payment</button><button class="record-action" onclick="addAuditNote()">＋ Activity Note</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px;"><button type="button" id="save-booking-changes-btn" class="quick-add-btn" onclick="saveBookingRecordEdits(event)">Save Booking Changes</button><span id="save-booking-changes-status" style="font-size:12px;color:rgba(255,255,255,.45);"></span><button class="record-action" onclick="applySuggestedAdjustedPrice()">Apply Discount to Total</button><button class="record-action" onclick="addPaymentRecord()">＋ Payment</button><button class="record-action" onclick="addAuditNote()">＋ Activity Note</button></div>
 
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">💳 Payment History</div></div><div id="record-payment-history"></div></div>
       <div class="record-subsection"><div class="record-subsection-head"><div class="record-subsection-title">🧾 Expenses & Profit</div><button class="soft-btn amber-soft" onclick="addExpenseRecord()">＋ Add Expense</button></div><div id="record-profit-summary" class="ultimate-grid"></div><div id="record-expense-history" class="mini-list"></div></div>
@@ -1556,30 +1561,45 @@ function bookingFromSupabaseRow(row){
 
 async function refreshBookingFromSupabase(ref){
   try{
+    const token=getAdminToken();
+    if(!token)throw new Error("Owner session expired");
     const base=SUPABASE_URL+"/rest/v1/";
-    const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+(getAdminToken()||SUPABASE_KEY)};
+    const headers={"apikey":SUPABASE_KEY,"Authorization":"Bearer "+token};
     const res=await fetch(base+"bookings?ref=eq."+encodeURIComponent(ref)+"&select=*",{headers});
-    if(!res.ok)throw new Error("Refresh failed: "+res.status);
+    if(!res.ok)throw new Error("Refresh failed: "+res.status+" "+await res.text());
     const rows=await res.json();
-    if(!rows.length)return null;
+    if(rows.length!==1)throw new Error("Expected exactly one booking for "+ref);
     const fresh=bookingFromSupabaseRow(rows[0]);
 
-    // Remove stale copies of this ref from every package, then place the
-    // authoritative Supabase copy into the correct package list.
+    // Supabase is authoritative: remove every stale copy and insert the saved row once.
     PACKAGES.forEach(p=>{
       bookings[p.id]=(bookings[p.id]||[]).filter(x=>x.ref!==ref);
     });
     const dest=fresh.pkgId || PACKAGES.find(p=>p.name===fresh.pkgName)?.id;
-    if(dest){
-      if(!bookings[dest])bookings[dest]=[];
-      bookings[dest].push(fresh);
-    }
+    if(!dest)throw new Error("Saved booking package could not be resolved");
+    if(!bookings[dest])bookings[dest]=[];
+    bookings[dest].push(fresh);
+
     saveLocalCache();
     return fresh;
   }catch(e){
     console.warn("Could not reload authoritative booking:",e.message);
     return null;
   }
+}
+
+async function resyncAllAdminData(){
+  // Pull the complete authenticated dataset again so every directory/report
+  // derives from the same Supabase truth after any edit.
+  try{
+    await loadDataFromSupabase();
+  }catch(e){
+    console.warn("Full admin resync failed:",e);
+  }
+  renderAdmin();
+  try{renderV4Records();}catch(e){}
+  try{renderUltimate();}catch(e){}
+  try{renderWebsiteLeads();}catch(e){}
 }
 
 async function bookingDateConflict(dateKey,ref){
@@ -2338,45 +2358,90 @@ function setMBType(type){
 let currentBookingTab = "upcoming";
 const TAB_LABELS = {
   upcoming:"📅 Upcoming Bookings", week:"🗓️ This Week",
-  month:"📆 This Month", past:"📂 Past Events",
+  month:"📆 This Month", past:"📂 Past Bookings",
   all:"📋 All Bookings", completed:"✅ Completed Parties",
   events:"🏟️ Special Events", invoiced:"📄 Invoiced — Awaiting Payment"
 };
 
+let adminFocusOpen=false;
+
+function adminPageChildren(){
+  const page=document.querySelector("#view-admin > .page");
+  return page?[...page.children]:[];
+}
+
+function openAdminFocus(sectionId,title){
+  const target=document.getElementById(sectionId);
+  if(!target)return;
+
+  // Restore first if switching directly between focused pages.
+  if(adminFocusOpen)closeAdminFocus(false);
+
+  const keepIds=new Set(["admin-command-nav","admin-focus-header",sectionId]);
+  adminPageChildren().forEach(el=>{
+    el.dataset.focusWasHidden=el.classList.contains("hidden")?"1":"0";
+    if(!keepIds.has(el.id))el.classList.add("hidden");
+  });
+
+  const header=document.getElementById("admin-focus-header");
+  if(header){
+    header.classList.remove("hidden");
+    header.style.display="flex";
+  }
+  const titleEl=document.getElementById("admin-focus-title");
+  if(titleEl)titleEl.textContent=title||"Admin View";
+  target.classList.remove("hidden");
+
+  // Helpful behavior for forms that are normally collapsed.
+  if(sectionId==="manual-booking-card"){
+    const form=document.getElementById("mb-form");
+    if(form?.classList.contains("hidden"))toggleManualBooking();
+  }
+  if(sectionId==="damage-records"){
+    const list=document.getElementById("damage-log-list");
+    if(list?.classList.contains("hidden"))toggleDamageLog();
+  }
+
+  adminFocusOpen=true;
+  window.scrollTo(0,0);
+}
+
+function closeAdminFocus(scrollTop=true){
+  if(!adminFocusOpen){
+    if(scrollTop)window.scrollTo(0,0);
+    return;
+  }
+  adminPageChildren().forEach(el=>{
+    if(el.id==="admin-focus-header"){
+      el.classList.add("hidden");
+      el.style.display="none";
+    }else if(el.dataset.focusWasHidden==="1"){
+      el.classList.add("hidden");
+    }else if(el.dataset.focusWasHidden==="0"){
+      el.classList.remove("hidden");
+    }
+    delete el.dataset.focusWasHidden;
+  });
+  adminFocusOpen=false;
+  if(scrollTop)window.scrollTo(0,0);
+}
+
 function openBookingView(tab){
-  currentBookingTab = tab;
-  document.getElementById("filter-time").value = tab;
-  // Hide everything in the admin view, show only the fullscreen booking list
-  document.querySelectorAll("#view-admin > *").forEach(el=>{
-    if(el.id==="view-bookings-fullscreen") return;
-    el.dataset.wasHidden = el.classList.contains("hidden") ? "1" : "0";
-    el.classList.add("hidden");
-  });
-  document.getElementById("view-bookings-fullscreen").classList.remove("hidden");
-  const titleEl=document.getElementById("bookings-tab-title");
-  if(titleEl) titleEl.textContent = TAB_LABELS[tab]||"📋 Bookings";
-  document.getElementById("filter-pkg").value="all";
-  document.getElementById("filter-payment").value="all";
-  document.getElementById("filter-source").value="all";
-  const search=document.getElementById("booking-search");
-  if(search) search.value="";
-  window.scrollTo(0,0);
+  currentBookingTab=tab;
+  const filterTime=document.getElementById("filter-time");
+  if(filterTime)filterTime.value=tab;
+  const pkg=document.getElementById("filter-pkg");if(pkg)pkg.value="all";
+  const pay=document.getElementById("filter-payment");if(pay)pay.value="all";
+  const src=document.getElementById("filter-source");if(src)src.value="all";
+  const search=document.getElementById("booking-search");if(search)search.value="";
+  const title=TAB_LABELS[tab]||"📋 Bookings";
+  const titleEl=document.getElementById("bookings-tab-title");if(titleEl)titleEl.textContent=title;
   renderAdmin();
+  openAdminFocus("view-bookings-fullscreen",title);
 }
 
-function closeBookingView(){
-  document.getElementById("view-bookings-fullscreen").classList.add("hidden");
-  document.querySelectorAll("#view-admin > *").forEach(el=>{
-    if(el.id==="view-bookings-fullscreen") return;
-    if(el.dataset.wasHidden==="0") el.classList.remove("hidden");
-    else if(el.dataset.wasHidden==="1") el.classList.add("hidden");
-    delete el.dataset.wasHidden;
-  });
-  window.scrollTo(0,0);
-}
-
-function setBookingTab(tab){ openBookingView(tab); }
-
+function closeBookingView(){closeAdminFocus();}
+function setBookingTab(tab){openBookingView(tab);}
 function toggleManualBooking(){
   const form=document.getElementById("mb-form");
   const icon=document.getElementById("mb-toggle-icon");
@@ -3242,8 +3307,28 @@ function seedMetaIfNeeded(b){
 }
 function setNavActive(btn){document.querySelectorAll('.admin-nav-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');}
 function jumpAdmin(id,btn){
-  closeBookingView();
-  const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});setNavActive(btn);
+  if(id==="command-center"){
+    closeAdminFocus();
+    const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+  }else{
+    const titles={
+      "manual-booking-card":"＋ New Booking / Event",
+      "availability-card":"📅 Availability & Calendar",
+      "lead-records":"🎯 Leads & Event Quote Requests",
+      "customer-records":"👥 Customers",
+      "payment-records":"💳 Payments & Balances",
+      "contract-records":"✍️ Contracts & Agreements",
+      "rental-policy-records":"📜 Rental Policy",
+      "damage-records":"⚠️ Incidents & Damage",
+      "operations-center":"🧰 Event Operations",
+      "profitability-records":"📈 Revenue, Expenses & Profitability",
+      "task-center":"✅ Tasks & Follow-Ups",
+      "export-center":"⬇️ Export Center",
+      "system-settings":"⚙️ Business Settings"
+    };
+    openAdminFocus(id,titles[id]||(btn?.textContent||"Admin View").trim());
+  }
+  setNavActive(btn);
 }
 function renderAttentionCenter(){
   const el=document.getElementById('attention-grid');if(!el)return;
@@ -3318,101 +3403,190 @@ function renderRecordHistories(b){
   ph.innerHTML=m.payments.length?m.payments.map((x,i)=>`<div class="mini-ledger-row"><span>${String(x.at||'').slice(0,10)}</span><span>${x.type||'Payment'}</span><span>${x.method||'Manual'}</span><strong style="color:#34D399">${money(x.amount)}</strong><button class="record-action" onclick="removePaymentRecord(${i})">×</button></div>`).join(''):'<div style="font-size:12px;color:rgba(255,255,255,.3)">No individual payments logged yet.</div>';
   const ah=document.getElementById('record-audit-history');ah.innerHTML=m.audit.length?m.audit.map(x=>`<div class="timeline-item">${x.text}<div class="timeline-time">${new Date(x.at).toLocaleString()}</div></div>`).join(''):'<div class="timeline-item">No activity yet.</div>';
 }
-async function saveBookingRecordEdits(){
-  const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;
-  const m=getMeta(b);
-  const oldDate=b.dateKey;
-  const previousBookingStatus=String(m.bookingStatus||'').toLowerCase();
-  const requestedBookingStatus=document.getElementById('edit-booking-status').value;
-  const newDate=document.getElementById('edit-date').value;
-
-  // If the date changes, verify shared availability first and move the
-  // database date lock so customer/admin availability stays identical.
-  if(newDate && newDate!==oldDate && !['cancelled','archived'].includes(requestedBookingStatus)){
-    const conflict=await bookingDateConflict(newDate,b.ref);
-    if(conflict){
-      alert('That date is already reserved by another booking. No changes were saved.');
-      document.getElementById('edit-date').value=oldDate;
-      return;
-    }
-    const moved=await adminMoveDate(b.ref,newDate);
-    if(moved!==true){
-      alert('That date could not be reserved. No changes were saved.');
-      document.getElementById('edit-date').value=oldDate;
-      return;
-    }
+function findBookingAnywhere(ref){
+  for(const p of PACKAGES){
+    const b=(bookings[p.id]||[]).find(x=>x.ref===ref);
+    if(b)return b;
   }
-
-  b.name=document.getElementById('edit-name').value.trim();
-  b.orgName=document.getElementById('edit-org').value.trim();
-  b.phone=document.getElementById('edit-phone').value.trim();
-  b.email=document.getElementById('edit-email').value.trim();
-  b.address=document.getElementById('edit-address').value.trim();
-  b.dateKey=newDate;
-  b.startTime=document.getElementById('edit-time').value.trim();
-  b.attraction=document.getElementById('edit-attraction').value.trim();
-  b.duration=document.getElementById('edit-duration').value.trim();
-  b.paymentStatus=document.getElementById('edit-payment-status').value;
-
-  const previousPrice=Number(b.price)||0,
-        previousOriginal=Number(m.originalPrice)||previousPrice,
-        previousDiscount=Number(m.discountAmount)||0,
-        previousCode=m.discountCode||'';
-
-  m.originalPrice=parseFloat(document.getElementById('edit-original-price').value)||0;
-  m.discountCode=document.getElementById('edit-discount-code').value.trim();
-  m.discountAmount=Math.max(parseFloat(document.getElementById('edit-discount-amount').value)||0,0);
-  b.price=Math.max(parseFloat(document.getElementById('edit-price').value)||0,0);
-  b.discountCode=m.discountCode;
-  b.discountAmount=m.discountAmount;
-  b.amountPaid=parseFloat(document.getElementById('edit-amount-paid').value)||0;
-  b.notes=document.getElementById('edit-notes').value.trim();
-  m.bookingStatus=requestedBookingStatus;
-  m.contractStatus=document.getElementById('edit-contract-status').value;
-  m.balanceDueDate=document.getElementById('edit-balance-due').value;
-
-  const wasInactive=['cancelled','archived'].includes(previousBookingStatus), nowInactive=['cancelled','archived'].includes(String(m.bookingStatus).toLowerCase());
-  if(nowInactive&&!wasInactive){await adminReleaseDate(b.ref);}
-  if(wasInactive&&!nowInactive){const relock=await adminReserveDate(b.dateKey,b.ref);if(relock!==true){m.bookingStatus=previousBookingStatus;alert('This booking cannot be reactivated because its date is no longer available.');return;}}
-
-  if(m.contractStatus==='signed'&&!m.contractAcceptedAt)m.contractAcceptedAt=new Date().toISOString();
-  if(m.bookingStatus==='completed'){
-    b.completed=true;b.completedAt=b.completedAt||new Date().toLocaleDateString();
-  }else if(b.completed&&m.bookingStatus!=='completed'){
-    b.completed=false;b.completedAt='';
-  }
-
-  let auditMsg=oldDate!==b.dateKey
-    ?`Booking edited; date changed from ${oldDate} to ${b.dateKey}`
-    :'Booking record updated';
-  if(previousPrice!==Number(b.price)||previousOriginal!==Number(m.originalPrice)||
-     previousDiscount!==Number(m.discountAmount)||previousCode!==m.discountCode){
-    auditMsg+=` · Price: original ${money(m.originalPrice)}, discount ${money(m.discountAmount)}${m.discountCode?' ('+m.discountCode+')':''}, final ${money(b.price)}`;
-  }
-  addAudit(b,auditMsg);
-
-  // Save local cache first, but do not claim success until Supabase confirms.
-  saveData();
-  showSaveBanner('Saving booking changes…');
-  const ok=await saveBookingToSheet(b);
-  if(!ok){
-    showSaveBanner('⚠️ Changes are local only — Supabase save failed');
-    return;
-  }
-
-  // Reload exactly what Supabase saved, then redraw every dependent area.
-  const fresh=await refreshBookingFromSupabase(b.ref);
-  renderAdmin();
-  try{renderV4Records();}catch(e){}
-  try{renderUltimate();}catch(e){}
-  if(fresh){
-    activeRecordPkg=fresh.pkgId||activeRecordPkg;
-    activeRecordRef=fresh.ref;
-  }
-  openBookingRecord(activeRecordPkg,activeRecordRef);
-  showSaveBanner('✅ Changes saved everywhere');
+  return null;
 }
 
+function bookingRowForSupabase(booking){
+  const pkgId = booking.pkgId || booking.pkg_id ||
+    PACKAGES.find(p=>p.name===booking.pkgName)?.id ||
+    PACKAGES.find(p=>p.name===booking.pkg_name)?.id || "";
+  return {
+    ref:booking.ref,
+    name:booking.name||"",
+    email:booking.email||"",
+    phone:booking.phone||"",
+    address:booking.address||"",
+    pkg_id:pkgId,
+    pkg_name:booking.pkgName||booking.pkg_name||"",
+    nerf_type:booking.nerfType||"",
+    duration:booking.duration||"",
+    date_key:booking.dateKey||"",
+    start_time:booking.startTime||"",
+    payment_status:booking.paymentStatus||"unpaid",
+    amount_paid:Number(booking.amountPaid)||0,
+    price:Number(booking.price)||0,
+    notes:booking.notes||"",
+    source:booking.source||"online",
+    completed:!!booking.completed,
+    completed_at:booking.completedAt||"",
+    checklist:JSON.stringify(booking.checklist||{}),
+    is_event:!!booking.isEvent,
+    org_name:booking.orgName||"",
+    attraction:booking.attraction||"",
+    pay_to_play:!!booking.payToPlay
+  };
+}
+
+async function updateExistingBookingOnly(booking){
+  const token=getAdminToken();
+  if(!token)throw new Error("Your owner session has expired. Sign in again.");
+  const row=bookingRowForSupabase(booking);
+  const res=await fetch(
+    SUPABASE_URL+"/rest/v1/bookings?ref=eq."+encodeURIComponent(booking.ref),
+    {
+      method:"PATCH",
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:"Bearer "+token,
+        "Content-Type":"application/json",
+        Prefer:"return=representation"
+      },
+      body:JSON.stringify(row)
+    }
+  );
+  const text=await res.text();
+  if(!res.ok)throw new Error("Supabase rejected the update ("+res.status+"): "+text);
+  let rows=[];
+  try{rows=text?JSON.parse(text):[];}catch(e){}
+  if(!Array.isArray(rows)||rows.length!==1){
+    throw new Error("Supabase did not confirm exactly one saved booking. Nothing was treated as saved.");
+  }
+  return rows[0];
+}
+
+async function saveBookingRecordEdits(ev){
+  if(ev){ev.preventDefault();ev.stopPropagation();}
+  const btn=document.getElementById("save-booking-changes-btn");
+  const status=document.getElementById("save-booking-changes-status");
+  const setStatus=(msg,color)=>{if(status){status.textContent=msg;status.style.color=color||"rgba(255,255,255,.55)";}};
+  if(btn){btn.disabled=true;btn.textContent="Saving…";}
+  setStatus("Saving to Supabase…","#FCD34D");
+
+  let movedDate=false, oldDate="";
+  try{
+    const live=findBookingAnywhere(activeRecordRef);
+    if(!live)throw new Error("This booking could not be found in the live booking list. Refresh Owner and try again.");
+
+    // Work on a clone so a failed save never changes the visible/local record.
+    const draft=JSON.parse(JSON.stringify(live));
+    const m=getMeta(draft);
+    oldDate=live.dateKey||"";
+    const previousBookingStatus=String(getMeta(live).bookingStatus||"").toLowerCase();
+    const requestedBookingStatus=document.getElementById("edit-booking-status").value;
+    const newDate=document.getElementById("edit-date").value;
+
+    draft.name=document.getElementById("edit-name").value.trim();
+    draft.orgName=document.getElementById("edit-org").value.trim();
+    draft.phone=document.getElementById("edit-phone").value.trim();
+    draft.email=document.getElementById("edit-email").value.trim();
+    draft.address=document.getElementById("edit-address").value.trim();
+    draft.dateKey=newDate;
+    draft.startTime=document.getElementById("edit-time").value.trim();
+    draft.attraction=document.getElementById("edit-attraction").value.trim();
+    draft.duration=document.getElementById("edit-duration").value.trim();
+    draft.paymentStatus=document.getElementById("edit-payment-status").value;
+
+    const previousPrice=Number(live.price)||0;
+    const previousMeta=getMeta(live);
+    const previousOriginal=Number(previousMeta.originalPrice)||previousPrice;
+    const previousDiscount=Number(previousMeta.discountAmount)||0;
+    const previousCode=previousMeta.discountCode||"";
+
+    m.originalPrice=parseFloat(document.getElementById("edit-original-price").value)||0;
+    m.discountCode=document.getElementById("edit-discount-code").value.trim();
+    m.discountAmount=Math.max(parseFloat(document.getElementById("edit-discount-amount").value)||0,0);
+    draft.price=Math.max(parseFloat(document.getElementById("edit-price").value)||0,0);
+    draft.discountCode=m.discountCode;
+    draft.discountAmount=m.discountAmount;
+    draft.amountPaid=parseFloat(document.getElementById("edit-amount-paid").value)||0;
+    draft.notes=document.getElementById("edit-notes").value.trim();
+    m.bookingStatus=requestedBookingStatus;
+    m.contractStatus=document.getElementById("edit-contract-status").value;
+    m.balanceDueDate=document.getElementById("edit-balance-due").value;
+
+    const wasInactive=["cancelled","archived"].includes(previousBookingStatus);
+    const nowInactive=["cancelled","archived"].includes(String(m.bookingStatus).toLowerCase());
+
+    // Date/availability changes happen before the row update, and are rolled back if saving fails.
+    if(newDate && newDate!==oldDate && !nowInactive){
+      const conflict=await bookingDateConflict(newDate,draft.ref);
+      if(conflict)throw new Error("That date is already reserved by another booking.");
+      const moved=await adminMoveDate(draft.ref,newDate);
+      if(moved!==true)throw new Error("That date could not be reserved.");
+      movedDate=true;
+    }else if(wasInactive&&!nowInactive){
+      const relock=await adminReserveDate(newDate,draft.ref);
+      if(relock!==true)throw new Error("This booking cannot be reactivated because its date is no longer available.");
+      movedDate=true;
+    }
+
+    if(m.contractStatus==="signed"&&!m.contractAcceptedAt)m.contractAcceptedAt=new Date().toISOString();
+    if(m.bookingStatus==="completed"){
+      draft.completed=true;
+      draft.completedAt=draft.completedAt||new Date().toLocaleDateString();
+    }else if(draft.completed&&m.bookingStatus!=="completed"){
+      draft.completed=false;draft.completedAt="";
+    }
+
+    let auditMsg=oldDate!==draft.dateKey
+      ?`Booking edited; date changed from ${oldDate} to ${draft.dateKey}`
+      :"Booking record updated";
+    if(previousPrice!==Number(draft.price)||previousOriginal!==Number(m.originalPrice)||
+       previousDiscount!==Number(m.discountAmount)||previousCode!==m.discountCode){
+      auditMsg+=` · Price: original ${money(m.originalPrice)}, discount ${money(m.discountAmount)}${m.discountCode?" ("+m.discountCode+")":""}, final ${money(draft.price)}`;
+    }
+    addAudit(draft,auditMsg);
+
+    const savedRow=await updateExistingBookingOnly(draft);
+
+    // Release the lock only AFTER the cancelled/archived state is confirmed saved.
+    if(nowInactive&&!wasInactive)await adminReleaseDate(draft.ref);
+
+    // Reload the edited row, then refresh the full authenticated dataset.
+    // Every admin view/report/customer directory now derives from the same saved record.
+    const fresh=await refreshBookingFromSupabase(draft.ref);
+    if(!fresh)throw new Error("The booking saved, but the system could not reload the updated record.");
+
+    activeRecordPkg=fresh.pkgId||activeRecordPkg;
+    activeRecordRef=fresh.ref;
+
+    await resyncAllAdminData();
+
+    const confirmed=findBookingAnywhere(fresh.ref);
+    if(!confirmed)throw new Error("Saved booking disappeared during the final sync.");
+    activeRecordPkg=confirmed.pkgId||activeRecordPkg;
+    openBookingRecord(activeRecordPkg,confirmed.ref);
+
+    setStatus("✓ Saved and synced","#34D399");
+    showSaveBanner("✅ Booking saved and all records refreshed");
+  }catch(err){
+    console.error("Save Booking Changes failed:",err);
+    // If we moved/relocked a date but the booking update failed, restore the old lock.
+    if(movedDate && oldDate && activeRecordRef){
+      try{await adminMoveDate(activeRecordRef,oldDate);}catch(e){}
+    }
+    setStatus("Save failed","#F87171");
+    alert("Save failed: "+(err?.message||err));
+    showSaveBanner("⚠️ Booking changes were NOT saved");
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Save Booking Changes";}
+  }
+}
 function addPaymentRecord(){
   const b=findLiveBooking(activeRecordPkg,activeRecordRef);if(!b)return;const amount=parseFloat(prompt('Payment amount received:','0'));if(!amount||amount<=0)return;const method=prompt('Payment method (Stripe, Cash, Check, Other):','Stripe')||'Other';const type=prompt('Payment type (Deposit, Balance, Payment, Damage Charge):','Payment')||'Payment';const m=getMeta(b);m.payments.unshift({at:new Date().toISOString(),amount,method,type});b.amountPaid=m.payments.reduce((s,x)=>s+(Number(x.amount)||0),0);if(b.amountPaid>=Number(b.price||0)&&b.price>0)b.paymentStatus=method.toLowerCase().includes('cash')?'cash':method.toLowerCase().includes('check')?'check':'stripe';else b.paymentStatus='deposit';addAudit(b,`${type} recorded: ${money(amount)} via ${method}`);saveData();saveBookingToSheet(b);renderAdmin();renderV4Records();openBookingRecord(activeRecordPkg,activeRecordRef);showSaveBanner('💳 Payment recorded');
 }
