@@ -193,7 +193,7 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>VIP Party Pods — Business System v10.2 + Reusable VIP Vault</title>
+<title>VIP Party Pods — Business System v10.3 + Reusable VIP Vault</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #07060F; font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; color: #F0ECF8; min-height: 100vh; }
@@ -335,9 +335,9 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
 
 
   /* V4 ADMIN COMMAND CENTER */
-  .admin-command-nav{position:sticky;top:74px;z-index:80;display:flex;gap:8px;overflow-x:auto;padding:10px 0 14px;margin-bottom:18px;background:linear-gradient(180deg,#07060F 74%,rgba(7,6,15,0));scrollbar-width:none}
+  .admin-command-nav{position:sticky;top:74px;z-index:80;display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;overflow:visible;padding:10px 0 14px;margin-bottom:18px;background:linear-gradient(180deg,#07060F 82%,rgba(7,6,15,0))}
   .admin-command-nav::-webkit-scrollbar{display:none}
-  .admin-nav-btn{flex:0 0 auto;padding:10px 15px;border-radius:10px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.035);color:rgba(255,255,255,.54);font:600 12px inherit;cursor:pointer;transition:.2s}
+  .admin-nav-btn{min-width:0;width:100%;padding:10px 8px;border-radius:10px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.035);color:rgba(255,255,255,.54);font:600 11px inherit;cursor:pointer;transition:.2s;white-space:normal;line-height:1.25;text-align:center}
   .admin-nav-btn:hover,.admin-nav-btn.active{border-color:rgba(167,139,250,.55);background:rgba(124,58,237,.16);color:#E9D5FF}
   .v4-section{scroll-margin-top:145px}
   .attention-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
@@ -359,7 +359,8 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
   .timeline{border-left:2px solid rgba(124,58,237,.35);padding-left:16px;margin-left:4px}.timeline-item{position:relative;padding:0 0 14px;font-size:12px;color:rgba(255,255,255,.58)}.timeline-item:before{content:'';position:absolute;left:-21px;top:4px;width:8px;height:8px;border-radius:50%;background:#A78BFA;box-shadow:0 0 0 4px #0E0B19}.timeline-time{font-size:10px;color:rgba(255,255,255,.3);margin-top:3px}
   .mini-ledger-row{display:grid;grid-template-columns:1.2fr .8fr .8fr 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.055);font-size:11px}
   .quick-add-btn{background:linear-gradient(135deg,#7C3AED,#A855F7);color:white;border:0;border-radius:10px;padding:11px 16px;font-weight:800;font-size:12px;cursor:pointer}
-  @media(max-width:650px){.v4-modal-grid{grid-template-columns:1fr}.v4-modal-grid .span2{grid-column:auto}.records-table{min-width:720px}.table-scroll{overflow-x:auto}.mini-ledger-row{grid-template-columns:1fr 1fr}.admin-command-nav{top:70px}}
+  @media(max-width:900px) and (min-width:651px){.admin-command-nav{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}.admin-nav-btn{font-size:10.5px;padding:9px 6px}}
+  @media(max-width:650px){.v4-modal-grid{grid-template-columns:1fr}.v4-modal-grid .span2{grid-column:auto}.records-table{min-width:720px}.table-scroll{overflow-x:auto}.mini-ledger-row{grid-template-columns:1fr 1fr}.admin-command-nav{top:70px;display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding-bottom:12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.admin-nav-btn{flex:0 0 auto;width:auto;min-width:max-content;white-space:nowrap;font-size:11px;padding:10px 13px}}
 
 
   /* ULTIMATE V5 MODULES */
