@@ -280,27 +280,26 @@ async function pay(){
       : '';
     summary.innerHTML=`
       <div class="notice">
-        <b>🔒 Your secure Stripe checkout is ready.</b>
-        <div style="margin-top:6px">Your date is being held temporarily while you complete payment.</div>
+        <b>🔒 Your secure checkout is ready.</b>
+        <div style="margin-top:6px">Your date is being held temporarily while you complete payment. Tap the Stripe button below to continue.</div>
       </div>
       <div class="sumrow"><span>Booking Reference</span><b>${ref}</b></div>
       <div class="sumrow"><span>Standard Total</span><b>$${standardPrice.toFixed(2)}</b></div>
       ${promoLine}
       <div class="sumrow total"><span>Checkout Total</span><b>$${price.toFixed(2)}</b></div>
-      <a id="stripe-fallback-link" class="btn" href="${checkoutUrl}" style="display:block;text-decoration:none;margin-top:14px;text-align:center">💳 Continue to Stripe Checkout</a>
+      <a id="stripe-fallback-link" class="btn" href="${checkoutUrl}" target="_self" rel="noopener" style="display:block;text-decoration:none;margin-top:14px;text-align:center;padding:16px">💳 Continue to Stripe Checkout</a>
       <div class="muted" style="margin-top:9px">If Stripe does not open automatically, use the button above.</div>`;
   }
 
-  paybtn.disabled=false;
-  paybtn.textContent='💳 Open Stripe Checkout';
-  paybtn.onclick=()=>{ window.location.href=checkoutUrl; };
+  // Stop here. Do NOT auto-redirect.
+  // The customer now taps the native Stripe link shown in the summary.
+  // This is more reliable on Safari/iPhone and avoids browser redirect issues.
+  paybtn.style.display='none';
 
-  // Redirect immediately after the booking is safely prepared.
-  // A normal same-tab href navigation is the most reliable behavior on iPhone/Safari.
-  try{
-    window.location.href=checkoutUrl;
-  }catch(err){
-    console.error('Automatic Stripe redirect failed',err);
+  const fallback=document.getElementById('stripe-fallback-link');
+  if(fallback){
+    fallback.focus();
+    fallback.scrollIntoView({behavior:'smooth',block:'center'});
   }
 }
 
@@ -311,9 +310,11 @@ function restorePendingStripeCheckout(){
   // Only expose recovery while the customer is still on the booking system.
   const btn=document.getElementById('paybtn');
   if(btn){
-    btn.disabled=false;
-    btn.textContent='💳 Resume Secure Checkout';
-    btn.onclick=()=>{window.location.href=u;};
+    btn.style.display='none';
+  }
+  const box=document.getElementById('summary');
+  if(box && !document.getElementById('stripe-fallback-link')){
+    box.innerHTML=`<div class="notice"><b>🔒 Your secure checkout is ready.</b><div style="margin-top:6px">Tap below to resume your Stripe checkout.</div></div><div class="sumrow"><span>Booking Reference</span><b>${ref}</b></div><a id="stripe-fallback-link" class="btn" href="${u}" target="_self" rel="noopener" style="display:block;text-decoration:none;margin-top:14px;text-align:center;padding:16px">💳 Continue to Stripe Checkout</a>`;
   }
 }
 
