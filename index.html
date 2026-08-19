@@ -85,7 +85,7 @@ By checking the box below and completing this booking, you agree to all terms an
 const SUPA_URL="https://gsrwmzojojkacxpahudj.supabase.co", SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzcndtem9qb2prYWN4cGFodWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Njg2MzUsImV4cCI6MjA5NzA0NDYzNX0.VhMPVeDrrW525Y6FaP0CjJe0zrBnB7keV54w9CMrI40";
 const PACKAGES=[{"id": "vip-party-pod", "name": "VIP Party Pod", "subtitle": "The Original", "emoji": "🎉", "description": "The perfect blank canvas. Our signature inflatable tent delivers the space and the wow factor — you bring the vision, we bring the vibe.", "includes": ["30×20×14 Inflatable Tent", "We set up and take down", "Extension Cord Included"], "options": [["4 Hours", 350], ["6 Hours", 425], ["All Night", 500]]}, {"id": "battle-bash-pod", "name": "Battle Bash Pod", "subtitle": "Nerf or Laser Tag", "emoji": "⚔️", "description": "Gear up for the ultimate backyard war. Battle tent, cover barriers, and a full arsenal of Nerf OR Laser Tag gear — high-stakes fun for all ages.", "includes": ["30×20×14 Battle Tent", "Nerf or Laser Tag Equipment", "Barriers for Cover", "We set up and take down"], "options": [["4 Hours", 450], ["6 Hours", 525]]}, {"id": "glow-up-pod", "name": "Glow-Up Pod", "subtitle": "Ultimate Nightclub Experience", "emoji": "🌟", "description": "Transform your backyard into an exclusive nightclub. Light-up tables & chairs, party lights, and a high-powered Bluetooth speaker.", "includes": ["30×20×14 Inflatable Tent", "Light-Up Tables & Chairs", "Party Lights", "High-Powered Bluetooth Speaker", "We set up and take down"], "options": [["6 Hours", 600]]}, {"id": "all-nighter-pod", "name": "All-Nighter Pod", "subtitle": "Until The Sun Comes Up", "emoji": "🌙", "description": "Everything in the Glow-Up Package, but the night never ends. All night access — the night is yours to command.", "includes": ["30×20×14 Inflatable Tent", "Light-Up Tables & Chairs", "Party Lights", "High-Powered Bluetooth Speaker", "All Night Access", "We set up and take down"], "options": [["All Night", 750]]}]; const STRIPE={"vip-party-pod|4 Hours": "https://buy.stripe.com/8x23cx8Pd0Bs1OafUz3ZK04", "vip-party-pod|6 Hours": "https://buy.stripe.com/14A4gB1mLdoe2Se6jZ3ZK06", "vip-party-pod|All Night": "https://buy.stripe.com/14AbJ33uTgAq50m7o33ZK03", "battle-bash-pod|4 Hours": "https://buy.stripe.com/cNi00ld5t6ZQ64qaAf3ZK05", "battle-bash-pod|6 Hours": "https://buy.stripe.com/8x214pc1pckaakG23J3ZK00", "glow-up-pod|6 Hours": "https://buy.stripe.com/5kQ28t0iH0BsgJ46jZ3ZK02", "all-nighter-pod|All Night": "https://buy.stripe.com/8x200l6H5ckaboKaAf3ZK01"};
 const DUR={'4 Hours':4,'6 Hours':6,'All Night':14}; const TIMES=['10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM','3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM','8:00 PM','8:30 PM','9:00 PM','9:30 PM'];
-let step=0,pkg=null,duration=null,battle=null,date=null,time=null,unavailableDates=[],cy=new Date().getFullYear(),cm=new Date().getMonth(),birthdayDiscount=0,birthdayEligible=false;
+let step=0,pkg=null,duration=null,battle=null,date=null,time=null,unavailableDates=[],cy=new Date().getFullYear(),cm=new Date().getMonth(),birthdayDiscount=0,birthdayEligible=false,birthdayDiscountChoice=null;
 const H={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
 function showBook(){portal.classList.add('hidden');quote.classList.add('hidden');booking.classList.remove('hidden')}
 function showPortal(){booking.classList.add('hidden');quote.classList.add('hidden');portal.classList.remove('hidden')}
@@ -119,47 +119,212 @@ function renderTimes(){times.classList.remove('hidden');let arr;if(duration==='A
 function validInfo(){for(const id of ['fn','ln','email','phone','addr','city','statezip'])if(!document.getElementById(id).value.trim()){alert('Please complete all customer information fields.');return false}return true}
 function pack(){return PACKAGES.find(p=>p.id===pkg)} function opt(){return pack().options.find(x=>x[0]===duration)}
 async function checkBirthdayDiscount(){birthdayDiscount=0;birthdayEligible=false;try{const r=await fetch(SUPA_URL+'/rest/v1/rpc/birthday_club_discount_eligibility',{method:'POST',headers:H,body:JSON.stringify({p_email:email.value.trim(),p_phone:phone.value.trim()})});if(!r.ok)return 0;const x=await r.json();birthdayEligible=!!x?.eligible;birthdayDiscount=birthdayEligible?Number(x.discount_amount||50):0;return birthdayDiscount}catch(e){return 0}}
+
+function setBirthdayDiscountChoice(useIt){
+  birthdayDiscountChoice=!!useIt;
+  renderSummary();
+}
+
 async function renderSummary(){
   let p=pack(),standard=Number(opt()[1]||0);
   summary.innerHTML=`<div class="sumrow"><span>Package</span><b>${p.name}</b></div>${battle?`<div class="sumrow"><span>Battle Style</span><b>${battle}</b></div>`:''}<div class="sumrow"><span>Duration</span><b>${duration}</b></div><div class="sumrow"><span>Date</span><b>${date}</b></div><div class="sumrow"><span>Start</span><b>${time}</b></div><div class="sumrow"><span>Name</span><b>${fn.value} ${ln.value}</b></div><div class="sumrow"><span>Location</span><b>${addr.value}, ${city.value}, ${statezip.value}</b></div><div class="sumrow total"><span>Total</span><b>$${standard.toFixed(2)}</b></div><div class="muted" style="padding-top:10px">Checking VIP Birthday Club membership…</div>`;
   await checkBirthdayDiscount();
+
   if(birthdayEligible){
     const discount=Math.min(Number(birthdayDiscount||50),standard);
-    const final=Math.max(0,standard-discount);
-    summary.innerHTML=`<div class="sumrow"><span>Package</span><b>${p.name}</b></div>${battle?`<div class="sumrow"><span>Battle Style</span><b>${battle}</b></div>`:''}<div class="sumrow"><span>Duration</span><b>${duration}</b></div><div class="sumrow"><span>Date</span><b>${date}</b></div><div class="sumrow"><span>Start</span><b>${time}</b></div><div class="sumrow"><span>Name</span><b>${fn.value} ${ln.value}</b></div><div class="sumrow"><span>Location</span><b>${addr.value}, ${city.value}, ${statezip.value}</b></div><div class="notice" style="margin-top:12px"><b>🎂 VIP Birthday Club Member Recognized!</b><br><span style="display:block;margin-top:5px">Your $${discount.toFixed(0)} VIP Birthday Club discount has been automatically applied to this booking.</span></div><div class="sumrow" style="margin-top:10px"><span>Standard Total</span><b>$${standard.toFixed(2)}</b></div><div class="sumrow" style="color:#34D399"><span>🎂 VIP Birthday Club Discount</span><b>-$${discount.toFixed(2)}</b></div><div class="sumrow total"><span>Your Total</span><b>$${final.toFixed(2)}</b></div>`;
+
+    if(birthdayDiscountChoice===null){
+      summary.innerHTML=`<div class="sumrow"><span>Package</span><b>${p.name}</b></div>${battle?`<div class="sumrow"><span>Battle Style</span><b>${battle}</b></div>`:''}<div class="sumrow"><span>Duration</span><b>${duration}</b></div><div class="sumrow"><span>Date</span><b>${date}</b></div><div class="sumrow"><span>Start</span><b>${time}</b></div><div class="sumrow"><span>Name</span><b>${fn.value} ${ln.value}</b></div><div class="sumrow"><span>Location</span><b>${addr.value}, ${city.value}, ${statezip.value}</b></div>
+      <div class="notice" style="margin-top:12px"><b>🎂 VIP Birthday Club Member Recognized!</b><br><span style="display:block;margin-top:5px">You have a $${discount.toFixed(0)} Birthday Club discount available. Would you like to use it on this booking or save it for later?</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+        <button type="button" class="btn" style="flex:1;min-width:180px" onclick="setBirthdayDiscountChoice(true)">Use My $${discount.toFixed(0)} Discount</button>
+        <button type="button" class="btn secondary" style="flex:1;min-width:180px" onclick="setBirthdayDiscountChoice(false)">Save It For Later</button>
+      </div></div>
+      <div class="sumrow total"><span>Standard Total</span><b>$${standard.toFixed(2)}</b></div>`;
+      return;
+    }
+
+    if(birthdayDiscountChoice===true){
+      const final=Math.max(0,standard-discount);
+      summary.innerHTML=`<div class="sumrow"><span>Package</span><b>${p.name}</b></div>${battle?`<div class="sumrow"><span>Battle Style</span><b>${battle}</b></div>`:''}<div class="sumrow"><span>Duration</span><b>${duration}</b></div><div class="sumrow"><span>Date</span><b>${date}</b></div><div class="sumrow"><span>Start</span><b>${time}</b></div><div class="sumrow"><span>Name</span><b>${fn.value} ${ln.value}</b></div><div class="sumrow"><span>Location</span><b>${addr.value}, ${city.value}, ${statezip.value}</b></div>
+      <div class="notice" style="margin-top:12px"><b>🎂 Birthday Club Discount Selected</b><br><span style="display:block;margin-top:5px">Your $${discount.toFixed(0)} discount will be used on this booking.</span><button type="button" class="link-btn" onclick="setBirthdayDiscountChoice(false)" style="margin-top:8px">Save it for later instead</button></div>
+      <div class="sumrow" style="margin-top:10px"><span>Standard Total</span><b>$${standard.toFixed(2)}</b></div><div class="sumrow" style="color:#34D399"><span>🎂 VIP Birthday Club Discount</span><b>-$${discount.toFixed(2)}</b></div><div class="sumrow total"><span>Your Total</span><b>$${final.toFixed(2)}</b></div>`;
+      return;
+    }
+
+    summary.innerHTML=`<div class="sumrow"><span>Package</span><b>${p.name}</b></div>${battle?`<div class="sumrow"><span>Battle Style</span><b>${battle}</b></div>`:''}<div class="sumrow"><span>Duration</span><b>${duration}</b></div><div class="sumrow"><span>Date</span><b>${date}</b></div><div class="sumrow"><span>Start</span><b>${time}</b></div><div class="sumrow"><span>Name</span><b>${fn.value} ${ln.value}</b></div><div class="sumrow"><span>Location</span><b>${addr.value}, ${city.value}, ${statezip.value}</b></div>
+    <div class="notice" style="margin-top:12px"><b>🎂 Birthday Club Discount Saved</b><br><span style="display:block;margin-top:5px">Your $${discount.toFixed(0)} discount will stay available for a future eligible booking.</span><button type="button" class="link-btn" onclick="setBirthdayDiscountChoice(true)" style="margin-top:8px">Use it on this booking instead</button></div>
+    <div class="sumrow total"><span>Your Total</span><b>$${standard.toFixed(2)}</b></div>`;
   }else{
     summary.innerHTML=summary.innerHTML.replace('<div class="muted" style="padding-top:10px">Checking VIP Birthday Club membership…</div>','');
   }
 }
 async function claimDate(ref){try{const expires=new Date(Date.now()+30*60000).toISOString();let r=await fetch(SUPA_URL+'/rest/v1/rpc/reserve_booking_date',{method:'POST',headers:H,body:JSON.stringify({p_date:date,p_ref:ref,p_hold_expires_at:expires})});if(r.ok){const v=await r.json();return v===true}if(r.status===404||r.status===400)return null;return false}catch(e){return null}}
 async function pay(){
-  paybtn.disabled=true;paybtn.textContent='Checking availability…';
+  if(birthdayEligible&&birthdayDiscountChoice===null){
+    alert('Please choose whether to use your $50 Birthday Club discount now or save it for later.');
+    return;
+  }
+
+  paybtn.disabled=true;
+  paybtn.textContent='Preparing secure checkout…';
+
   await sync();
-  if(unavailable(date)){alert('That date was just booked. Please choose another available date.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';go(2);return;}
+  if(unavailable(date)){
+    alert('That date was just booked. Please choose another available date.');
+    paybtn.disabled=false;
+    paybtn.textContent='🔒 Continue to Secure Payment';
+    go(2);
+    return;
+  }
+
   await checkBirthdayDiscount();
+
   const ref='VIP-'+Math.random().toString(36).slice(2,8).toUpperCase();
-  const lock=await claimDate(ref);
-  if(lock!==true){alert('That date could not be reserved right now. Please choose the date again and retry.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';go(2);return;}
-  const exp=new Date(Date.now()+30*60000).toISOString(),p=pack(),standardPrice=Number(opt()[1]||0),discount=birthdayEligible?Math.min(50,standardPrice):0,price=Math.max(0,standardPrice-discount);
-  const notes='PENDING CHECKOUT | PENDING_CHECKOUT_UNTIL='+exp+' | STANDARD_PRICE='+standardPrice+(discount?' | BIRTHDAY_CLUB_DISCOUNT=50':'');
-  const checklist=JSON.stringify({__meta:{originalPrice:standardPrice,discountAmount:discount,discountCode:discount?'VIPBDAY50':'',bookingStatus:'awaiting',contractStatus:'signed',agreementType:'Rental Agreement',audit:[{at:new Date().toISOString(),text:discount?'Online booking created with verified VIP Birthday Club discount of $50':'Online booking created at standard price '+standardPrice}]}});
+  const p=pack();
+  const standardPrice=Number(opt()[1]||0);
+  const discount=(birthdayEligible&&birthdayDiscountChoice===true)?Math.min(50,standardPrice):0;
+  const price=Math.max(0,standardPrice-discount);
+
+  // Build and validate the Stripe URL BEFORE creating the pending booking.
+  const stripeBase=STRIPE[pkg+'|'+duration];
+  if(!stripeBase){
+    alert('Secure payment is not configured for this package yet. Please contact VIP Party Pods.');
+    paybtn.disabled=false;
+    paybtn.textContent='🔒 Continue to Secure Payment';
+    return;
+  }
+
+  let checkoutUrl='';
   try{
-    const r=await fetch(SUPA_URL+'/rest/v1/rpc/create_public_booking',{method:'POST',headers:H,body:JSON.stringify({p_ref:ref,p_name:fn.value.trim()+' '+ln.value.trim(),p_email:email.value.trim(),p_phone:phone.value.trim(),p_address:addr.value.trim()+', '+city.value.trim()+', '+statezip.value.trim(),p_pkg_id:pkg,p_pkg_name:p.name,p_battle_type:battle||'',p_duration:duration,p_date_key:date,p_start_time:time,p_price:price,p_notes:notes,p_checklist:checklist})});
+    const u=new URL(stripeBase);
+    u.searchParams.set('client_reference_id',ref);
+    u.searchParams.set('locked_prefilled_email',email.value.trim());
+    if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');
+    checkoutUrl=u.toString();
+  }catch(err){
+    console.error('Stripe URL error',err);
+    alert('We could not prepare the secure Stripe checkout. Please try again.');
+    paybtn.disabled=false;
+    paybtn.textContent='🔒 Continue to Secure Payment';
+    return;
+  }
+
+  paybtn.textContent='Holding your date…';
+  const lock=await claimDate(ref);
+  if(lock!==true){
+    alert('That date could not be held for checkout right now. Please choose the date again and retry.');
+    paybtn.disabled=false;
+    paybtn.textContent='🔒 Continue to Secure Payment';
+    go(2);
+    return;
+  }
+
+  const exp=new Date(Date.now()+30*60000).toISOString();
+  const notes='PENDING CHECKOUT | PENDING_CHECKOUT_UNTIL='+exp+' | STANDARD_PRICE='+standardPrice+(discount?' | BIRTHDAY_CLUB_DISCOUNT=50':'');
+  const checklist=JSON.stringify({__meta:{
+    originalPrice:standardPrice,
+    discountAmount:discount,
+    discountCode:discount?'VIPBDAY50':'',
+    bookingStatus:'awaiting',
+    contractStatus:'signed',
+    agreementType:'Rental Agreement',
+    audit:[{at:new Date().toISOString(),text:discount?'Online checkout started with verified VIP Birthday Club discount of $50':'Online checkout started at standard price '+standardPrice}]
+  }});
+
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/rpc/create_public_booking',{
+      method:'POST',
+      headers:H,
+      body:JSON.stringify({
+        p_ref:ref,
+        p_name:fn.value.trim()+' '+ln.value.trim(),
+        p_email:email.value.trim(),
+        p_phone:phone.value.trim(),
+        p_address:addr.value.trim()+', '+city.value.trim()+', '+statezip.value.trim(),
+        p_pkg_id:pkg,
+        p_pkg_name:p.name,
+        p_battle_type:battle||'',
+        p_duration:duration,
+        p_date_key:date,
+        p_start_time:time,
+        p_price:price,
+        p_notes:notes,
+        p_checklist:checklist
+      })
+    });
+
     if(!r.ok||await r.json()!==true)throw new Error('Booking reservation was rejected');
-    localStorage.setItem('vip_pending_booking_ref',ref);localStorage.setItem('vip_pending_booking_pkg',pkg);localStorage.setItem('vip_pending_booking_price',price);
-    const link=STRIPE[pkg+'|'+duration];if(!link)throw new Error('Payment link not configured');
-    const u=new URL(link);u.searchParams.set('client_reference_id',ref);u.searchParams.set('locked_prefilled_email',email.value.trim());if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');location.href=u.toString();
   }catch(e){
-    try{await fetch(SUPA_URL+'/rest/v1/rpc/release_checkout_hold',{method:'POST',headers:H,body:JSON.stringify({p_ref:ref})})}catch(_e){}
-    alert('We could not reserve the date right now. Please try again or contact VIP Party Pods.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';
+    console.error('Pending booking creation failed',e);
+    try{
+      await fetch(SUPA_URL+'/rest/v1/rpc/release_checkout_hold',{
+        method:'POST',
+        headers:H,
+        body:JSON.stringify({p_ref:ref})
+      });
+    }catch(_e){}
+    alert('We could not prepare your booking for payment. Please try again or contact VIP Party Pods.');
+    paybtn.disabled=false;
+    paybtn.textContent='🔒 Continue to Secure Payment';
+    return;
+  }
+
+  localStorage.setItem('vip_pending_booking_ref',ref);
+  localStorage.setItem('vip_pending_booking_pkg',pkg);
+  localStorage.setItem('vip_pending_booking_price',price);
+  localStorage.setItem('vip_pending_stripe_url',checkoutUrl);
+
+  // Give the customer a visible fallback before redirecting.
+  if(summary){
+    const promoLine=discount
+      ? `<div class="sumrow" style="color:#34D399"><span>🎂 Birthday Club Discount</span><b>-$${discount.toFixed(2)}</b></div>`
+      : '';
+    summary.innerHTML=`
+      <div class="notice">
+        <b>🔒 Your secure Stripe checkout is ready.</b>
+        <div style="margin-top:6px">Your date is being held temporarily while you complete payment.</div>
+      </div>
+      <div class="sumrow"><span>Booking Reference</span><b>${ref}</b></div>
+      <div class="sumrow"><span>Standard Total</span><b>$${standardPrice.toFixed(2)}</b></div>
+      ${promoLine}
+      <div class="sumrow total"><span>Checkout Total</span><b>$${price.toFixed(2)}</b></div>
+      <a id="stripe-fallback-link" href="${checkoutUrl}" style="display:block;text-decoration:none;margin-top:14px">
+        <button class="btn" type="button" style="width:100%">💳 Continue to Stripe Checkout</button>
+      </a>
+      <div class="muted" style="margin-top:9px">If Stripe does not open automatically, use the button above.</div>`;
+  }
+
+  paybtn.disabled=false;
+  paybtn.textContent='💳 Open Stripe Checkout';
+  paybtn.onclick=()=>window.location.assign(checkoutUrl);
+
+  // Same-tab navigation is normally not blocked. The visible button remains if it is.
+  setTimeout(()=>{
+    try{window.location.assign(checkoutUrl);}
+    catch(err){console.error('Automatic Stripe redirect failed',err);}
+  },250);
+}
+
+function restorePendingStripeCheckout(){
+  const u=localStorage.getItem('vip_pending_stripe_url');
+  const ref=localStorage.getItem('vip_pending_booking_ref');
+  if(!u||!ref)return;
+  // Only expose recovery while the customer is still on the booking system.
+  const btn=document.getElementById('paybtn');
+  if(btn){
+    btn.disabled=false;
+    btn.textContent='💳 Resume Secure Checkout';
+    btn.onclick=()=>window.location.assign(u);
   }
 }
+
 async function markPaidReturn(){
   const q=new URLSearchParams(location.search);if(q.get('paid')!=='true')return;
   const ref=localStorage.getItem('vip_pending_booking_ref');if(!ref)return;
   document.querySelectorAll('#booking section').forEach(x=>x.classList.add('hidden'));thanks.classList.remove('hidden');
   thanksbody.innerHTML='Booking reference <b>'+ref+'</b>. Your reservation has been saved. Payment is verified separately before the owner system marks the booking paid.';
-  localStorage.removeItem('vip_pending_booking_ref');
+  localStorage.removeItem('vip_pending_booking_ref');localStorage.removeItem('vip_pending_stripe_url');
 }
 async function lookup(){
   pmsg.textContent='Looking up booking…';presult.innerHTML='';
@@ -192,7 +357,7 @@ async function submitQuoteLead(){
   else{qmsg.textContent='✅ Your quote request was saved on this device. If you do not hear from us, please call or text (423) 255-8034. The shared Leads table may still need its one-time Supabase setup.';qmsg.style.color='#FCD34D';qsubmit.textContent='Quote Request Saved';}
 }
 
-renderSteps();renderPkgs();try{unavailableDates=JSON.parse(localStorage.getItem('vip_shared_unavailable_dates')||'[]')}catch(e){}sync();markPaidReturn();setInterval(sync,30000);window.addEventListener('focus',sync);
+renderSteps();renderPkgs();try{unavailableDates=JSON.parse(localStorage.getItem('vip_shared_unavailable_dates')||'[]')}catch(e){}sync();markPaidReturn();restorePendingStripeCheckout();setInterval(sync,30000);window.addEventListener('focus',sync);
 </script>
 <script>
 window.addEventListener('load',function(){try{const mode=(window.frameElement&&window.frameElement.dataset.mode)||'book';if(mode==='quote'&&typeof showQuote==='function')showQuote();else if(mode==='portal'&&typeof showPortal==='function')showPortal();else if(typeof showBook==='function')showBook();}catch(e){}});
