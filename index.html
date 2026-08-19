@@ -166,155 +166,59 @@ async function pay(){
     return;
   }
 
-  paybtn.disabled=true;
-  paybtn.textContent='Preparing secure checkout…';
-
-  await sync();
-  if(unavailable(date)){
-    alert('That date was just booked. Please choose another available date.');
-    paybtn.disabled=false;
-    paybtn.textContent='🔒 Continue to Secure Payment';
-    go(2);
-    return;
-  }
-
-  await checkBirthdayDiscount();
-
+  // Generate and store the reference BEFORE leaving the page so the return flow can still find it.
   const ref='VIP-'+Math.random().toString(36).slice(2,8).toUpperCase();
-  const p=pack();
-  const standardPrice=Number(opt()[1]||0);
-  const discount=(birthdayEligible&&birthdayDiscountChoice===true)?Math.min(50,standardPrice):0;
-  const price=Math.max(0,standardPrice-discount);
-
-  // Build and validate the Stripe URL BEFORE creating the pending booking.
-  const stripeBase=STRIPE[pkg+'|'+duration];
-  if(!stripeBase){
-    alert('Secure payment is not configured for this package yet. Please contact VIP Party Pods.');
-    paybtn.disabled=false;
-    paybtn.textContent='🔒 Continue to Secure Payment';
-    return;
-  }
-
-  let checkoutUrl='';
-  try{
-    const u=new URL(stripeBase);
-    if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');
-    checkoutUrl=u.toString();
-  }catch(err){
-    console.error('Stripe URL error',err);
-    alert('We could not prepare the secure Stripe checkout. Please try again.');
-    paybtn.disabled=false;
-    paybtn.textContent='🔒 Continue to Secure Payment';
-    return;
-  }
-
-  paybtn.textContent='Holding your date…';
-  const lock=await claimDate(ref);
-  if(lock!==true){
-    alert('That date could not be held for checkout right now. Please choose the date again and retry.');
-    paybtn.disabled=false;
-    paybtn.textContent='🔒 Continue to Secure Payment';
-    go(2);
-    return;
-  }
-
-  const exp=new Date(Date.now()+30*60000).toISOString();
-  const notes='PENDING CHECKOUT | PENDING_CHECKOUT_UNTIL='+exp+' | STANDARD_PRICE='+standardPrice+(discount?' | BIRTHDAY_CLUB_DISCOUNT=50':'');
-  const checklist=JSON.stringify({__meta:{
-    originalPrice:standardPrice,
-    discountAmount:discount,
-    discountCode:discount?'VIPBDAY50':'',
-    bookingStatus:'awaiting',
-    contractStatus:'signed',
-    agreementType:'Rental Agreement',
-    audit:[{at:new Date().toISOString(),text:discount?'Online checkout started with verified VIP Birthday Club discount of $50':'Online checkout started at standard price '+standardPrice}]
-  }});
-
-  try{
-    const r=await fetch(SUPA_URL+'/rest/v1/rpc/create_public_booking',{
-      method:'POST',
-      headers:H,
-      body:JSON.stringify({
-        p_ref:ref,
-        p_name:fn.value.trim()+' '+ln.value.trim(),
-        p_email:email.value.trim(),
-        p_phone:phone.value.trim(),
-        p_address:addr.value.trim()+', '+city.value.trim()+', '+statezip.value.trim(),
-        p_pkg_id:pkg,
-        p_pkg_name:p.name,
-        p_battle_type:battle||'',
-        p_duration:duration,
-        p_date_key:date,
-        p_start_time:time,
-        p_price:price,
-        p_notes:notes,
-        p_checklist:checklist
-      })
-    });
-
-    if(!r.ok||await r.json()!==true)throw new Error('Booking reservation was rejected');
-  }catch(e){
-    console.error('Pending booking creation failed',e);
-    try{
-      await fetch(SUPA_URL+'/rest/v1/rpc/release_checkout_hold',{
-        method:'POST',
-        headers:H,
-        body:JSON.stringify({p_ref:ref})
-      });
-    }catch(_e){}
-    alert('We could not prepare your booking for payment. Please try again or contact VIP Party Pods.');
-    paybtn.disabled=false;
-    paybtn.textContent='🔒 Continue to Secure Payment';
-    return;
-  }
-
   localStorage.setItem('vip_pending_booking_ref',ref);
   localStorage.setItem('vip_pending_booking_pkg',pkg);
-  localStorage.setItem('vip_pending_booking_price',price);
-  localStorage.setItem('vip_pending_stripe_url',checkoutUrl);
 
-  // Give the customer a visible fallback before redirecting.
-  if(summary){
-    const promoLine=discount
-      ? `<div class="sumrow" style="color:#34D399"><span>🎂 Birthday Club Discount</span><b>-$${discount.toFixed(2)}</b></div>`
-      : '';
-    summary.innerHTML=`
-      <div class="notice">
-        <b>🔒 Your secure checkout is ready.</b>
-        <div style="margin-top:6px">Your date is being held temporarily while you complete payment. Tap the Stripe button below to continue.</div>
-      </div>
-      <div class="sumrow"><span>Booking Reference</span><b>${ref}</b></div>
-      <div class="sumrow"><span>Standard Total</span><b>$${standardPrice.toFixed(2)}</b></div>
-      ${promoLine}
-      <div class="sumrow total"><span>Checkout Total</span><b>$${price.toFixed(2)}</b></div>
-      <a id="stripe-fallback-link" class="btn" href="${checkoutUrl}" target="_self" rel="noopener" style="display:block;text-decoration:none;margin-top:14px;text-align:center;padding:16px">💳 Continue to Stripe Checkout</a>
-      <div class="muted" style="margin-top:9px">If Stripe does not open automatically, use the button above.</div>`;
-  }
+  paybtn.disabled=true;
+  paybtn.style.display='';
+  paybtn.textContent='Opening secure Stripe checkout…';
 
-  // Stop here. Do NOT auto-redirect.
-  // The customer now taps the native Stripe link shown in the summary.
-  // This is more reliable on Safari/iPhone and avoids browser redirect issues.
-  paybtn.style.display='none';
+  // Use a real browser form submission instead of fetch/window.open/location redirects.
+  // The Supabase backend validates the package/price, verifies Birthday Club eligibility,
+  // creates the temporary hold + pending booking, then returns HTTP 303 directly to Stripe.
+  const form=document.createElement('form');
+  form.method='POST';
+  form.action='https://gsrwmzojojkacxpahudj.supabase.co/functions/v1/start-checkout';
+  form.target='_self';
+  form.style.display='none';
 
-  const fallback=document.getElementById('stripe-fallback-link');
-  if(fallback){
-    fallback.focus();
-    fallback.scrollIntoView({behavior:'smooth',block:'center'});
-  }
+  const fields={
+    ref,
+    pkg,
+    duration,
+    date,
+    time,
+    first_name:fn.value.trim(),
+    last_name:ln.value.trim(),
+    email:email.value.trim(),
+    phone:phone.value.trim(),
+    address:addr.value.trim(),
+    city:city.value.trim(),
+    statezip:statezip.value.trim(),
+    battle:battle||'',
+    use_birthday_discount:(birthdayEligible&&birthdayDiscountChoice===true)?'true':'false'
+  };
+
+  Object.entries(fields).forEach(([name,value])=>{
+    const input=document.createElement('input');
+    input.type='hidden';
+    input.name=name;
+    input.value=String(value??'');
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }
-
 function restorePendingStripeCheckout(){
-  const u=localStorage.getItem('vip_pending_stripe_url');
-  const ref=localStorage.getItem('vip_pending_booking_ref');
-  if(!u||!ref)return;
-  // Only expose recovery while the customer is still on the booking system.
   const btn=document.getElementById('paybtn');
   if(btn){
-    btn.style.display='none';
-  }
-  const box=document.getElementById('summary');
-  if(box && !document.getElementById('stripe-fallback-link')){
-    box.innerHTML=`<div class="notice"><b>🔒 Your secure checkout is ready.</b><div style="margin-top:6px">Tap below to resume your Stripe checkout.</div></div><div class="sumrow"><span>Booking Reference</span><b>${ref}</b></div><a id="stripe-fallback-link" class="btn" href="${u}" target="_self" rel="noopener" style="display:block;text-decoration:none;margin-top:14px;text-align:center;padding:16px">💳 Continue to Stripe Checkout</a>`;
+    btn.style.display='';
+    btn.disabled=false;
+    btn.textContent='🔒 Continue to Secure Payment';
+    btn.onclick=pay;
   }
 }
 
@@ -323,7 +227,7 @@ async function markPaidReturn(){
   const ref=localStorage.getItem('vip_pending_booking_ref');if(!ref)return;
   document.querySelectorAll('#booking section').forEach(x=>x.classList.add('hidden'));thanks.classList.remove('hidden');
   thanksbody.innerHTML='Booking reference <b>'+ref+'</b>. Your reservation has been saved. Payment is verified separately before the owner system marks the booking paid.';
-  localStorage.removeItem('vip_pending_booking_ref');localStorage.removeItem('vip_pending_stripe_url');
+  localStorage.removeItem('vip_pending_booking_ref');
 }
 async function lookup(){
   pmsg.textContent='Looking up booking…';presult.innerHTML='';
