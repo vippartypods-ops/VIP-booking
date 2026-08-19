@@ -343,6 +343,16 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
   .day-toggle.active { border-color:#7C3AED; background:rgba(124,58,237,0.2); color:#E9D5FF; }
 
 
+
+  /* V10.5 ADMIN PAGE ROUTING
+     Main owner tabs behave like separate internal pages instead of scroll anchors. */
+  .admin-page-hidden{display:none !important}
+  .admin-page-current{display:block}
+  .admin-page-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .admin-date-range{display:flex;gap:8px;align-items:end;flex-wrap:wrap;padding:12px 14px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);border-radius:10px;margin-bottom:14px}
+  .admin-date-range .date-field{min-width:155px;flex:0 1 190px}
+  @media(max-width:650px){.admin-date-range .date-field{min-width:0;flex:1 1 140px}}
+
   /* V4 ADMIN COMMAND CENTER */
   .admin-command-nav{position:sticky;top:74px;z-index:80;display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;overflow:visible;padding:10px 0 14px;margin-bottom:18px;background:linear-gradient(180deg,#07060F 82%,rgba(7,6,15,0))}
   .admin-command-nav::-webkit-scrollbar{display:none}
@@ -628,11 +638,14 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
 
     <!-- V4 COMMAND NAVIGATION -->
     <div class="admin-command-nav" id="admin-command-nav">
-      <button class="admin-nav-btn active" onclick="jumpAdmin('command-center',this)">⌂ Dashboard</button>
+      <button class="admin-nav-btn active" onclick="showAdminDashboard(this)">⌂ Dashboard</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('manual-booking-card',this)">＋ New Booking</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('availability-card',this)">📅 Calendar</button>
-      <button class="admin-nav-btn" onclick="openBookingView('all');setNavActive(this)">📋 Bookings</button>
-      <button class="admin-nav-btn" onclick="openBookingView('events');setNavActive(this)">🏟️ Events</button>
+      <button class="admin-nav-btn" onclick="openBookingView('upcoming');setNavActive(this)">📅 Upcoming</button>
+      <button class="admin-nav-btn" onclick="openBookingView('all');setNavActive(this)">📋 All Bookings</button>
+      <button class="admin-nav-btn" onclick="openBookingView('pastparties');setNavActive(this)">🎉 Past Parties</button>
+      <button class="admin-nav-btn" onclick="openBookingView('pastevents');setNavActive(this)">🏟️ Past Events</button>
+      <button class="admin-nav-btn" onclick="openBookingView('events');setNavActive(this)">🎪 Events</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('lead-records',this);loadWebsiteLeads()">🎯 Leads</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('birthday-club-records',this);loadBirthdayClubMembers()">🎂 Birthday Club</button>
       <button class="admin-nav-btn" onclick="jumpAdmin('vip-vault-records',this);loadVaultAdmin()">🔐 VIP Vault</button>
@@ -680,7 +693,7 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
     </div>
 
     <!-- QUICK STATS -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;">
+    <div id="dashboard-quick-stats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;">
       <div onclick="setStatFilter('all')" style="background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#7C3AED'" onmouseout="this.style.borderColor='rgba(124,58,237,0.2)'">
         <div style="font-size:28px;font-weight:800;color:#A78BFA;" id="stat-total-bookings">0</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.1em;margin-top:4px;">Total Bookings</div>
@@ -724,13 +737,13 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
     </div>
 
     <!-- BUSIEST DAY INSIGHT -->
-    <div class="admin-card" style="margin-bottom:24px;">
+    <div id="dashboard-booking-insights" class="admin-card" style="margin-bottom:24px;">
       <div class="admin-title">📈 Booking Insights</div>
       <div id="booking-insights" style="font-size:13px;color:rgba(255,255,255,0.6);"></div>
     </div>
 
     <!-- MONTHLY TREND CHART -->
-    <div class="admin-card" style="margin-bottom:24px;">
+    <div id="dashboard-monthly-trend" class="admin-card" style="margin-bottom:24px;">
       <div class="admin-title">📊 Bookings & Revenue — Last 6 Months</div>
       <div id="monthly-trend-chart" style="margin-top:12px;"></div>
     </div>
@@ -745,7 +758,7 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
     </div>
 
     <!-- TODAY'S SCHEDULE -->
-    <div class="admin-card" style="margin-bottom:24px;">
+    <div id="dashboard-todays-schedule" class="admin-card" style="margin-bottom:24px;">
       <div class="admin-title">📅 Today's Schedule</div>
       <div id="todays-schedule"></div>
     </div>
@@ -1009,7 +1022,8 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
       <button onclick="openBookingView('upcoming')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(167,139,250,0.3);background:rgba(124,58,237,0.1);color:#A78BFA;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">📅<br/><span style="font-size:11px;font-weight:500;display:block;">Upcoming</span></button>
       <button onclick="openBookingView('week')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(244,114,182,0.3);background:rgba(244,114,182,0.08);color:#F472B6;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">🗓️<br/><span style="font-size:11px;font-weight:500;display:block;">This Week</span></button>
       <button onclick="openBookingView('month')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(56,189,248,0.3);background:rgba(56,189,248,0.08);color:#38BDF8;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">📆<br/><span style="font-size:11px;font-weight:500;display:block;">This Month</span></button>
-      <button onclick="openBookingView('past')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#F87171;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">📂<br/><span style="font-size:11px;font-weight:500;display:block;">Past Events</span></button>
+      <button onclick="openBookingView('pastparties')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(244,114,182,0.3);background:rgba(244,114,182,0.08);color:#F472B6;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">🎉<br/><span style="font-size:11px;font-weight:500;display:block;">Past Parties</span></button>
+      <button onclick="openBookingView('pastevents')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:#FCD34D;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">🏟️<br/><span style="font-size:11px;font-weight:500;display:block;">Past Events</span></button>
       <button onclick="openBookingView('all')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">📋<br/><span style="font-size:11px;font-weight:500;display:block;">All Bookings</span></button>
       <button onclick="openBookingView('completed')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);color:#34D399;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">✅<br/><span style="font-size:11px;font-weight:500;display:block;">Completed</span></button>
       <button onclick="openBookingView('events')" style="padding:16px 8px;border-radius:12px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:#FCD34D;font-weight:700;font-size:14px;cursor:pointer;text-align:center;line-height:1.6;">🏟️<br/><span style="font-size:11px;font-weight:500;display:block;">Events</span></button>
@@ -1044,12 +1058,21 @@ window.addEventListener('load',function(){try{const mode=(window.frameElement&&w
           <option value="upcoming">upcoming</option>
           <option value="week">week</option>
           <option value="month">month</option>
+          <option value="pastparties">pastparties</option>
+          <option value="pastevents">pastevents</option>
           <option value="past">past</option>
           <option value="all">all</option>
           <option value="completed">completed</option>
           <option value="events">events</option>
           <option value="invoiced">invoiced</option>
         </select>
+      </div>
+      <div class="admin-date-range">
+        <div class="date-field"><label class="input-label">From Date</label><input class="input" id="booking-date-from" type="date" onchange="renderAdmin()" style="margin:0"/></div>
+        <div class="date-field"><label class="input-label">To Date</label><input class="input" id="booking-date-to" type="date" onchange="renderAdmin()" style="margin:0"/></div>
+        <button class="soft-btn" type="button" onclick="renderAdmin()">Apply Dates</button>
+        <button class="soft-btn" type="button" onclick="clearBookingDateRange()">Clear Dates</button>
+        <div style="font-size:11px;color:rgba(255,255,255,.35);align-self:center;">Use one date or a full range to find a specific day, month, or period.</div>
       </div>
       <div class="admin-card" style="margin-bottom:12px;">
         <input class="input" id="booking-search" type="text" placeholder="🔍 Search by name, phone, org, or ref number..." oninput="renderAdmin()" style="margin-bottom:0;"/>
@@ -2350,56 +2373,51 @@ function setMBType(type){
 
 let currentBookingTab = "upcoming";
 const TAB_LABELS = {
-  upcoming:"📅 Upcoming Bookings", week:"🗓️ This Week",
-  month:"📆 This Month", past:"📂 Past Events",
-  all:"📋 All Bookings", completed:"✅ Completed Parties",
-  events:"🏟️ Special Events", invoiced:"📄 Invoiced — Awaiting Payment"
+  upcoming:"📅 Upcoming Parties & Events", week:"🗓️ This Week",
+  month:"📆 This Month", past:"📂 Past Records",
+  pastparties:"🎉 Past Parties", pastevents:"🏟️ Past Events",
+  all:"📋 All Bookings", completed:"✅ Completed Parties & Events",
+  events:"🎪 Current / Upcoming Events", invoiced:"📄 Invoiced — Awaiting Payment"
 };
 
 function openBookingView(tab){
   currentBookingTab = tab || "all";
   const timeFilter=document.getElementById("filter-time");
   if(timeFilter) timeFilter.value=currentBookingTab;
-  const page=document.querySelector("#view-admin > .page");
   const full=document.getElementById("view-bookings-fullscreen");
-  if(!page||!full){ console.error("Booking view container missing"); return; }
-  // IMPORTANT: hide dashboard sections INSIDE .page, never the .page ancestor itself.
-  // Keep the owner header + command navigation visible so every admin destination remains clickable.
-  Array.from(page.children).forEach((el,idx)=>{
-    if(el===full || el.id==="admin-command-nav" || idx<2) return;
-    if(!Object.prototype.hasOwnProperty.call(el.dataset,"bookingWasHidden")){
-      el.dataset.bookingWasHidden=el.classList.contains("hidden")?"1":"0";
-    }
-    el.classList.add("hidden");
-  });
-  full.classList.remove("hidden");
+  if(!full){ console.error("Booking view container missing"); return; }
+
+  hideAllAdminPages();
+  full.classList.remove("hidden","admin-page-hidden");
+
   const titleEl=document.getElementById("bookings-tab-title");
   if(titleEl) titleEl.textContent=TAB_LABELS[currentBookingTab]||"📋 Bookings";
-  ["filter-pkg","filter-payment","filter-source"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="all";});
-  const search=document.getElementById("booking-search"); if(search) search.value="";
+
+  ["filter-pkg","filter-payment","filter-source"].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value="all";
+  });
+  const search=document.getElementById("booking-search"); if(search)search.value="";
+  // Date range deliberately stays as entered when moving between booking pages so the owner can compare views.
   try{ renderAdmin(); }catch(err){
     console.error("Booking list render failed",err);
     const list=document.getElementById("bookings-list");
-    if(list) list.innerHTML='<div class="admin-card" style="color:#F87171">Unable to render bookings. Refresh the page and try again.</div>';
+    if(list)list.innerHTML='<div class="admin-card" style="color:#F87171">Unable to render bookings. Refresh the page and try again.</div>';
   }
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function closeBookingView(){
-  const page=document.querySelector("#view-admin > .page");
-  const full=document.getElementById("view-bookings-fullscreen");
-  if(full) full.classList.add("hidden");
-  if(page){
-    Array.from(page.children).forEach(el=>{
-      if(el===full) return;
-      if(el.dataset.bookingWasHidden==="0") el.classList.remove("hidden");
-      else if(el.dataset.bookingWasHidden==="1") el.classList.add("hidden");
-      delete el.dataset.bookingWasHidden;
-    });
-  }
+  showAdminDashboard(document.querySelector(".admin-nav-btn"));
 }
 
 function setBookingTab(tab){ openBookingView(tab); }
+function clearBookingDateRange(){
+  const from=document.getElementById("booking-date-from");
+  const to=document.getElementById("booking-date-to");
+  if(from)from.value="";
+  if(to)to.value="";
+  renderAdmin();
+}
 
 function toggleManualBooking(){
   const form=document.getElementById("mb-form");
@@ -3085,11 +3103,19 @@ function renderAdmin(){
     const monthKey=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
     filtered=filtered.filter(b=>!b.completed&&b.dateKey&&b.dateKey.startsWith(monthKey));
   }
-  if(filterTime==="past") filtered=filtered.filter(b=>!b.completed&&new Date(b.dateKey+"T23:59:59")<now);
+  if(filterTime==="past") filtered=filtered.filter(b=>b.dateKey&&new Date(b.dateKey+"T23:59:59")<now);
+  if(filterTime==="pastparties") filtered=filtered.filter(b=>!b.isEvent&&b.dateKey&&new Date(b.dateKey+"T23:59:59")<now);
+  if(filterTime==="pastevents") filtered=filtered.filter(b=>b.isEvent===true&&b.dateKey&&new Date(b.dateKey+"T23:59:59")<now);
   if(filterTime==="completed") filtered=filtered.filter(b=>b.completed===true);
   if(filterTime==="all") filtered=filtered;
-  if(filterTime==="events") filtered=filtered.filter(b=>b.isEvent===true&&!b.completed);
+  if(filterTime==="events") filtered=filtered.filter(b=>b.isEvent===true&&!b.completed&&b.dateKey&&new Date(b.dateKey+"T23:59:59")>=now);
   if(filterTime==="invoiced") filtered=filtered.filter(b=>b.paymentStatus==="invoiced"&&!b.completed);
+
+  // Optional owner date-range filter. Inclusive on both ends.
+  const rangeFrom=document.getElementById("booking-date-from")?.value||"";
+  const rangeTo=document.getElementById("booking-date-to")?.value||"";
+  if(rangeFrom) filtered=filtered.filter(b=>b.dateKey&&b.dateKey>=rangeFrom);
+  if(rangeTo) filtered=filtered.filter(b=>b.dateKey&&b.dateKey<=rangeTo);
 
   if(filterPayment==="unpaid")filtered=filtered.filter(b=>b.paymentStatus==="unpaid"||b.paymentStatus==="deposit"||!b.paymentStatus);
   if(filterPayment==="invoiced")filtered=filtered.filter(b=>b.paymentStatus==="invoiced");
@@ -3105,11 +3131,15 @@ function renderAdmin(){
     (b.orgName||"").toLowerCase().includes(searchTerm)||
     (b.ref||"").toLowerCase().includes(searchTerm)
   );
-  filtered.sort((a,b)=>String(a.dateKey||"").localeCompare(String(b.dateKey||"")));
+  if(filterTime==="past"||filterTime==="pastparties"||filterTime==="pastevents"||filterTime==="completed"){
+    filtered.sort((a,b)=>String(b.dateKey||"").localeCompare(String(a.dateKey||"")));
+  }else{
+    filtered.sort((a,b)=>String(a.dateKey||"").localeCompare(String(b.dateKey||"")));
+  }
 
   const list=document.getElementById("bookings-list");
   if(!filtered.length){
-    const msgs={completed:"No completed parties yet.",upcoming:"No upcoming bookings.",week:"No parties this week.",month:"No parties this month.",past:"No past events found.",events:"No special events found.",invoiced:"No invoiced bookings found."};
+    const msgs={completed:"No completed parties or events found.",upcoming:"No upcoming parties or events.",week:"No parties or events this week.",month:"No parties or events this month.",past:"No past records found.",pastparties:"No past parties found in this view/date range.",pastevents:"No past events found in this view/date range.",events:"No current or upcoming special events found.",invoiced:"No invoiced bookings found."};
     list.innerHTML=`<div class="admin-card" style="text-align:center;color:rgba(255,255,255,0.3);font-size:13px;">${msgs[filterTime]||"No bookings found."}</div>`;
     return;
   }
@@ -3289,10 +3319,52 @@ function seedMetaIfNeeded(b){
   if(!m.payments.length && (b.amountPaid||0)>0){m.payments.push({at:b.completedAt||new Date().toISOString(),type:(b.paymentStatus==="deposit"?"Deposit":"Payment"),method:b.paymentStatus||"manual",amount:Number(b.amountPaid)||0,note:"Imported from existing booking total"});}
   return m;
 }
-function setNavActive(btn){document.querySelectorAll('.admin-nav-btn').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');}
+function setNavActive(btn){
+  document.querySelectorAll('.admin-nav-btn').forEach(x=>x.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+}
+function adminContentChildren(){
+  const page=document.querySelector("#view-admin > .page");
+  if(!page)return [];
+  const nav=document.getElementById("admin-command-nav");
+  // Keep the page heading/subtitle and main navigation visible. Everything after the nav is routed like a page.
+  const kids=Array.from(page.children);
+  const navIndex=kids.indexOf(nav);
+  return navIndex>=0 ? kids.slice(navIndex+1) : [];
+}
+function hideAllAdminPages(){
+  adminContentChildren().forEach(el=>el.classList.add("admin-page-hidden"));
+}
+function expandAdminCardIfCollapsed(id){
+  const body=document.getElementById(id+"-collapse-body");
+  if(body&&body.classList.contains("hidden")){
+    body.classList.remove("hidden");
+    const card=document.getElementById(id);
+    const btn=card?.querySelector(":scope > div > .soft-btn");
+    if(btn)btn.textContent="Hide";
+  }
+}
+function showAdminDashboard(btn){
+  hideAllAdminPages();
+  ["command-center","dashboard-quick-stats","dashboard-booking-insights","dashboard-monthly-trend","dashboard-todays-schedule"].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.classList.remove("admin-page-hidden");
+  });
+  const sync=document.getElementById("sync-error-banner"); if(sync&&!sync.classList.contains("hidden"))sync.classList.remove("admin-page-hidden");
+  const backup=document.getElementById("backup-reminder-banner"); if(backup&&!backup.classList.contains("hidden"))backup.classList.remove("admin-page-hidden");
+  setNavActive(btn||document.querySelector(".admin-nav-btn"));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 function jumpAdmin(id,btn){
-  closeBookingView();
-  const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});setNavActive(btn);
+  const full=document.getElementById("view-bookings-fullscreen");
+  if(full)full.classList.add("admin-page-hidden","hidden");
+  hideAllAdminPages();
+  const el=document.getElementById(id);
+  if(el){
+    el.classList.remove("admin-page-hidden","hidden");
+    expandAdminCardIfCollapsed(id);
+  }
+  setNavActive(btn);
+  window.scrollTo({top:0,behavior:"smooth"});
 }
 function renderAttentionCenter(){
   const el=document.getElementById('attention-grid');if(!el)return;
