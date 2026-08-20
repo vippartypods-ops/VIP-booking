@@ -3779,8 +3779,42 @@ function renderBirthdayClubMembers(){
   const upcoming=birthdayClubMembers.filter(x=>Number(x.birthday_month)===nextMonth).length;
   const fresh=birthdayClubMembers.filter(x=>String(x.status||'New').toLowerCase()==='new').length;
   const redeemed=birthdayClubMembers.filter(x=>x.discount_redeemed).length;
-  if(sum)sum.innerHTML=`<div class="attention-item"><div class="metric-label">New Members</div><div class="metric-value" style="color:#F472B6">${fresh}</div></div><div class="attention-item"><div class="metric-label">Next Month Birthdays</div><div class="metric-value" style="color:#FCD34D">${upcoming}</div></div><div class="attention-item"><div class="metric-label">Discounts Used</div><div class="metric-value">${redeemed}</div></div><div class="attention-item"><div class="metric-label">Total Members</div><div class="metric-value">${birthdayClubMembers.length}</div></div>`;
-  body.innerHTML=birthdayClubMembers.map((x,i)=>`<tr><td>${bcSafe(String(x.created_at||'').slice(0,10))}</td><td><strong>${bcSafe(x.parent_name)}</strong></td><td>${bcSafe(MONTH_NAMES[Number(x.birthday_month)]||'—')}</td><td>${bcSafe(x.attraction_interest||'Not sure')}</td><td><a href="mailto:${bcSafe(x.email)}" style="color:#38BDF8">${bcSafe(x.email)}</a><br><a href="tel:${String(x.phone||'').replace(/[^0-9+]/g,'')}" style="color:#38BDF8">${bcSafe(x.phone)}</a><br><span style="color:rgba(255,255,255,.35)">${bcSafe(x.zip_code||'')}</span></td><td><select class="input" style="padding:7px;font-size:11px;min-width:115px" onchange="updateBirthdayMember(${i},'status',this.value)"><option ${x.status==='New'?'selected':''}>New</option><option ${x.status==='Contacted'?'selected':''}>Contacted</option><option ${x.status==='Booked'?'selected':''}>Booked</option></select></td><td><button class="soft-btn ${x.discount_redeemed?'':'blue-soft'}" onclick="updateBirthdayMember(${i},'discount_redeemed',${x.discount_redeemed?'false':'true'})">${x.discount_redeemed?'✓ Used':'Mark Used'}</button></td><td><input class="input" style="min-width:170px;padding:7px;font-size:11px" value="${bcSafe(x.notes||'')}" placeholder="Owner notes" onchange="updateBirthdayMember(${i},'notes',this.value)"></td></tr>`).join('')||'<tr><td colspan="8" style="color:rgba(255,255,255,.3)">No Birthday Club signups yet.</td></tr>';
+  const pending=birthdayClubMembers.filter(x=>x.discount_pending && x.pending_expires_at && new Date(x.pending_expires_at)>now).length;
+  const available=birthdayClubMembers.filter(x=>!x.discount_redeemed && (!x.discount_pending || !x.pending_expires_at || new Date(x.pending_expires_at)<=now)).length;
+
+  if(sum)sum.innerHTML=
+    `<div class="attention-item"><div class="metric-label">Available $50</div><div class="metric-value" style="color:#34D399">${available}</div></div>`+
+    `<div class="attention-item"><div class="metric-label">Pending Checkout</div><div class="metric-value" style="color:#FCD34D">${pending}</div></div>`+
+    `<div class="attention-item"><div class="metric-label">Discounts Used</div><div class="metric-value">${redeemed}</div></div>`+
+    `<div class="attention-item"><div class="metric-label">Total Members</div><div class="metric-value">${birthdayClubMembers.length}</div></div>`;
+
+  body.innerHTML=birthdayClubMembers.map((x,i)=>{
+    const pendingActive=x.discount_pending && x.pending_expires_at && new Date(x.pending_expires_at)>now;
+    const expiredPending=x.discount_pending && (!x.pending_expires_at || new Date(x.pending_expires_at)<=now);
+    let benefitStatus='',benefitColor='';
+    if(x.discount_redeemed){benefitStatus='✓ Redeemed';benefitColor='#A78BFA';}
+    else if(pendingActive){benefitStatus='⏳ Pending';benefitColor='#FCD34D';}
+    else{benefitStatus='$50 Available';benefitColor='#34D399';}
+    const ref=x.discount_redeemed?(x.booking_ref||''):(pendingActive?(x.pending_booking_ref||''):'');
+    const expires=pendingActive?`<div style="font-size:10px;color:rgba(255,255,255,.38);margin-top:3px">Hold until ${bcSafe(new Date(x.pending_expires_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}))}</div>`:'';
+    return `<tr>
+      <td>${bcSafe(String(x.created_at||'').slice(0,10))}</td>
+      <td><strong>${bcSafe(x.parent_name)}</strong></td>
+      <td>${bcSafe(MONTH_NAMES[Number(x.birthday_month)]||'—')}</td>
+      <td>${bcSafe(x.attraction_interest||'Not sure')}</td>
+      <td><a href="mailto:${bcSafe(x.email)}" style="color:#38BDF8">${bcSafe(x.email)}</a><br><a href="tel:${String(x.phone||'').replace(/[^0-9+]/g,'')}" style="color:#38BDF8">${bcSafe(x.phone)}</a><br><span style="color:rgba(255,255,255,.35)">${bcSafe(x.zip_code||'')}</span></td>
+      <td><select class="input" style="padding:7px;font-size:11px;min-width:115px" onchange="updateBirthdayMember(${i},'status',this.value)"><option ${x.status==='New'?'selected':''}>New</option><option ${x.status==='Contacted'?'selected':''}>Contacted</option><option ${x.status==='Booked'?'selected':''}>Booked</option><option ${x.status==='Discount Pending'?'selected':''}>Discount Pending</option><option ${x.status==='Redeemed'?'selected':''}>Redeemed</option></select></td>
+      <td>
+        <div style="font-weight:800;color:${benefitColor}">${benefitStatus}</div>
+        ${ref?`<div style="font-size:10px;color:#C4B5FD;margin-top:3px">${bcSafe(ref)}</div>`:''}
+        ${expires}
+        ${x.discount_redeemed
+          ? `<button class="soft-btn" style="margin-top:6px" onclick="updateBirthdayMember(${i},'discount_redeemed',false)">Reopen $50</button>`
+          : `<button class="soft-btn blue-soft" style="margin-top:6px" onclick="updateBirthdayMember(${i},'discount_redeemed',true)">Mark Redeemed</button>`}
+      </td>
+      <td><input class="input" style="min-width:170px;padding:7px;font-size:11px" value="${bcSafe(x.notes||'')}" placeholder="Owner notes" onchange="updateBirthdayMember(${i},'notes',this.value)"></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="8" style="color:rgba(255,255,255,.3)">No Birthday Club signups yet.</td></tr>';
 }
 async function updateBirthdayMember(i,field,value){
   const x=birthdayClubMembers[i];if(!x)return;
