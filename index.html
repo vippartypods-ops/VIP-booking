@@ -159,69 +159,34 @@ async function renderSummary(){
     summary.innerHTML=summary.innerHTML.replace('<div class="muted" style="padding-top:10px">Checking VIP Birthday Club membership…</div>','');
   }
 }
-async function claimDate(ref){try{const expires=new Date(Date.now()+30*60000).toISOString();let r=await fetch(SUPA_URL+'/rest/v1/rpc/reserve_booking_date',{method:'POST',headers:H,body:JSON.stringify({p_date:date,p_ref:ref,p_hold_expires_at:expires})});if(r.ok){const v=await r.json();return v===true}if(r.status===404||r.status===400)return null;return false}catch(e){return null}}
+async function claimDate(ref){try{const expires=new Date(Date.now()+5*60000).toISOString();let r=await fetch(SUPA_URL+'/rest/v1/rpc/reserve_booking_date',{method:'POST',headers:H,body:JSON.stringify({p_date:date,p_ref:ref,p_hold_expires_at:expires})});if(r.ok){const v=await r.json();return v===true}if(r.status===404||r.status===400)return null;return false}catch(e){return null}}
 async function pay(){
   if(birthdayEligible&&birthdayDiscountChoice===null){
     alert('Please choose whether to use your $50 Birthday Club discount now or save it for later.');
     return;
   }
 
-  // Generate and store the reference BEFORE leaving the page so the return flow can still find it.
+  paybtn.disabled=true;paybtn.textContent='Checking availability…';
+  await sync();
+  if(unavailable(date)){alert('That date was just booked. Please choose another available date.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';go(2);return;}
+  await checkBirthdayDiscount();
   const ref='VIP-'+Math.random().toString(36).slice(2,8).toUpperCase();
-  localStorage.setItem('vip_pending_booking_ref',ref);
-  localStorage.setItem('vip_pending_booking_pkg',pkg);
-
-  paybtn.disabled=true;
-  paybtn.style.display='';
-  paybtn.textContent='Opening secure Stripe checkout…';
-
-  // Use a real browser form submission instead of fetch/window.open/location redirects.
-  // The Supabase backend validates the package/price, verifies Birthday Club eligibility,
-  // creates the temporary hold + pending booking, then returns HTTP 303 directly to Stripe.
-  const form=document.createElement('form');
-  form.method='POST';
-  form.action='https://gsrwmzojojkacxpahudj.supabase.co/functions/v1/start-checkout';
-  form.target='_self';
-  form.style.display='none';
-
-  const fields={
-    ref,
-    pkg,
-    duration,
-    date,
-    time,
-    first_name:fn.value.trim(),
-    last_name:ln.value.trim(),
-    email:email.value.trim(),
-    phone:phone.value.trim(),
-    address:addr.value.trim(),
-    city:city.value.trim(),
-    statezip:statezip.value.trim(),
-    battle:battle||'',
-    use_birthday_discount:(birthdayEligible&&birthdayDiscountChoice===true)?'true':'false'
-  };
-
-  Object.entries(fields).forEach(([name,value])=>{
-    const input=document.createElement('input');
-    input.type='hidden';
-    input.name=name;
-    input.value=String(value??'');
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
-}
-function restorePendingStripeCheckout(){
-  const btn=document.getElementById('paybtn');
-  if(btn){
-    btn.style.display='';
-    btn.disabled=false;
-    btn.textContent='🔒 Continue to Secure Payment';
-    btn.onclick=pay;
+  const lock=await claimDate(ref);
+  if(lock!==true){alert('That date could not be reserved right now. Please choose the date again and retry.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';go(2);return;}
+  const exp=new Date(Date.now()+5*60000).toISOString(),p=pack(),standardPrice=Number(opt()[1]||0),discount=(birthdayEligible&&birthdayDiscountChoice===true)?Math.min(50,standardPrice):0,price=Math.max(0,standardPrice-discount);
+  const notes='PENDING CHECKOUT | PENDING_CHECKOUT_UNTIL='+exp+' | STANDARD_PRICE='+standardPrice+(discount?' | BIRTHDAY_CLUB_DISCOUNT=50':'');
+  const checklist=JSON.stringify({__meta:{originalPrice:standardPrice,discountAmount:discount,discountCode:discount?'VIPBDAY50':'',bookingStatus:'awaiting',contractStatus:'signed',agreementType:'Rental Agreement',audit:[{at:new Date().toISOString(),text:discount?'Online booking created with verified VIP Birthday Club discount of $50':'Online booking created at standard price '+standardPrice}]}});
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/rpc/create_public_booking',{method:'POST',headers:H,body:JSON.stringify({p_ref:ref,p_name:fn.value.trim()+' '+ln.value.trim(),p_email:email.value.trim(),p_phone:phone.value.trim(),p_address:addr.value.trim()+', '+city.value.trim()+', '+statezip.value.trim(),p_pkg_id:pkg,p_pkg_name:p.name,p_battle_type:battle||'',p_duration:duration,p_date_key:date,p_start_time:time,p_price:price,p_notes:notes,p_checklist:checklist})});
+    if(!r.ok||await r.json()!==true)throw new Error('Booking reservation was rejected');
+    localStorage.setItem('vip_pending_booking_ref',ref);localStorage.setItem('vip_pending_booking_pkg',pkg);localStorage.setItem('vip_pending_booking_price',price);
+    const link=STRIPE[pkg+'|'+duration];if(!link)throw new Error('Payment link not configured');
+    const u=new URL(link);u.searchParams.set('client_reference_id',ref);u.searchParams.set('locked_prefilled_email',email.value.trim());if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');location.href=u.toString();
+  }catch(e){
+    try{await fetch(SUPA_URL+'/rest/v1/rpc/release_checkout_hold',{method:'POST',headers:H,body:JSON.stringify({p_ref:ref})})}catch(_e){}
+    alert('We could not reserve the date right now. Please try again or contact VIP Party Pods.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';
   }
 }
-
 async function markPaidReturn(){
   const q=new URLSearchParams(location.search);if(q.get('paid')!=='true')return;
   const ref=localStorage.getItem('vip_pending_booking_ref');if(!ref)return;
@@ -260,7 +225,7 @@ async function submitQuoteLead(){
   else{qmsg.textContent='✅ Your quote request was saved on this device. If you do not hear from us, please call or text (423) 255-8034. The shared Leads table may still need its one-time Supabase setup.';qmsg.style.color='#FCD34D';qsubmit.textContent='Quote Request Saved';}
 }
 
-renderSteps();renderPkgs();try{unavailableDates=JSON.parse(localStorage.getItem('vip_shared_unavailable_dates')||'[]')}catch(e){}sync();markPaidReturn();restorePendingStripeCheckout();setInterval(sync,30000);window.addEventListener('focus',sync);
+renderSteps();renderPkgs();try{unavailableDates=JSON.parse(localStorage.getItem('vip_shared_unavailable_dates')||'[]')}catch(e){}sync();markPaidReturn();setInterval(sync,30000);window.addEventListener('focus',sync);
 </script>
 <script>
 window.addEventListener('load',function(){try{const mode=(window.frameElement&&window.frameElement.dataset.mode)||'book';if(mode==='quote'&&typeof showQuote==='function')showQuote();else if(mode==='portal'&&typeof showPortal==='function')showPortal();else if(typeof showBook==='function')showBook();}catch(e){}});
