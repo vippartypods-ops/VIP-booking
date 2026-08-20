@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VIP Email Center</title>
+<style>
+:root{--bg:#090611;--card:#151020;--line:#302440;--txt:#f7f2ff;--mut:#a99bb8;--pink:#f238b9;--purple:#8b5cf6;--cyan:#22d3ee;--green:#34d399;--yellow:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#24113a 0,#0a0711 38%,#07050b 100%);color:var(--txt);font:14px system-ui,Arial,sans-serif;min-height:100vh}
+button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-columns:245px 1fr;min-height:100vh}.side{background:#0d0913;border-right:1px solid var(--line);padding:22px 14px;position:sticky;top:0;height:100vh}.brand{font-size:20px;font-weight:900;margin:0 8px 24px}.brand span{color:var(--pink)}.nav{display:grid;gap:7px}.nav button{border:0;background:transparent;color:#c8bbd5;text-align:left;padding:12px;border-radius:10px;cursor:pointer}.nav button:hover,.nav button.active{background:#231632;color:#fff}.main{padding:28px;max-width:1400px;width:100%}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:24px}.title{font-size:28px;font-weight:900}.sub{color:var(--mut);font-size:12px}.btn{border:1px solid #49365f;background:#21152e;color:#fff;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700}.primary{background:linear-gradient(90deg,#8b5cf6,#e52cae);border:0}.danger{color:#fda4af}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.card{background:rgba(20,14,30,.92);border:1px solid var(--line);border-radius:14px;padding:17px}.metric{font-size:28px;font-weight:900;margin-top:7px}.label{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.panel{background:rgba(20,14,30,.94);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}.panel h2{font-size:16px;margin:0 0 14px}.view{display:none}.view.active{display:block}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}.input{background:#0d0914;color:#fff;border:1px solid #3b2b4c;border-radius:8px;padding:10px;width:100%}.toolbar .input{width:auto;min-width:190px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:11px;border-bottom:1px solid #2a2035;text-align:left;font-size:12px}th{color:#a99bb8}.tag{display:inline-block;padding:5px 8px;border-radius:999px;background:#281b35;font-size:10px;font-weight:800}.green{color:var(--green)}.yellow{color:var(--yellow)}.pink{color:#f472b6}.muted{color:var(--mut)}textarea{min-height:220px;resize:vertical}.empty{padding:30px;text-align:center;color:var(--mut)}.toggle{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid #2a2035}.note{font-size:11px;color:#b8a9c5;line-height:1.5}.warn{border:1px solid #5a4420;background:#2a200e;padding:12px;border-radius:10px;color:#fcd34d;margin-bottom:14px}
+@media(max-width:850px){.shell{grid-template-columns:1fr}.side{height:auto;position:static;border-right:0;border-bottom:1px solid var(--line)}.nav{grid-template-columns:repeat(3,1fr)}.nav button{text-align:center;padding:9px 5px;font-size:11px}.main{padding:16px}.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+
+.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.preview-overlay.show{display:flex}.preview-box{width:min(980px,96vw);max-height:92vh;overflow:auto;background:#0e0a15;border:1px solid #4b3760;border-radius:16px;padding:18px}
+.preview-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.preview-actions{display:flex;gap:8px;flex-wrap:wrap}
+.mailframe{margin:auto;background:white;color:#111;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px #0008}.mailframe.desktop{width:760px}.mailframe.mobile{width:390px}
+.mailhead{padding:14px 18px;border-bottom:1px solid #ddd;font:13px Arial,sans-serif}.mailbody{padding:24px;font:15px/1.6 Arial,sans-serif}.mailbody img{max-width:100%;height:auto}.mailfoot{padding:18px;background:#f6f6f6;color:#666;font:12px Arial,sans-serif}
+</style></head>
+<body><div class="shell"><aside class="side"><div class="brand">VIP <span>EMAIL</span> CENTER</div><div class="nav">
+<button class="active" data-view="dashboard">▦ Dashboard</button><button data-view="opportunities">✦ Opportunities</button><button data-view="subscribers">👥 Subscribers</button><button data-view="campaigns">✉ Campaigns</button><button data-view="groups">◉ Smart Groups</button>
+<button data-view="automations">⚡ Automations</button><button data-view="calendar">📅 Calendar</button><button data-view="analytics">📊 Analytics</button><button data-view="templates">▤ Templates</button><button data-view="history">↻ Email History</button><button data-view="brand">🎨 Brand Settings</button><button data-view="unsubscribed">⊘ Suppression</button>
+</div></aside><main class="main">
+<div class="top"><div><div class="title" id="pageTitle">Dashboard</div><div class="sub">VIP Party Pods • Standalone marketing system</div></div><button class="btn" onclick="syncBirthday()">↻ Sync Birthday Club</button></div>
+
+<section id="dashboard" class="view active"><div class="cards">
+<div class="card"><div class="label">Subscribers</div><div class="metric" id="mSubs">—</div></div><div class="card"><div class="label">$50 Still Available</div><div class="metric" id="mDiscount">—</div></div>
+<div class="card"><div class="label">Birthdays Next Month</div><div class="metric" id="mBirthdays">—</div></div><div class="card"><div class="label">Unsubscribed</div><div class="metric" id="mUnsubs">—</div></div></div>
+<div class="panel"><h2>Quick Actions</h2><div class="toolbar"><button class="btn primary" onclick="go('campaigns')">+ Create Campaign</button><button class="btn" onclick="go('templates')">Edit Templates</button><button class="btn" onclick="go('automations')">Manage Automations</button></div></div>
+
+<div class="grid2">
+<div class="panel"><h2>Marketing Opportunities</h2><div id="dashOpportunities"></div><button class="btn" onclick="go('opportunities')">View All Opportunities</button></div>
+<div class="panel"><h2>Engagement Snapshot</h2><div id="dashEngagement"></div></div>
+</div>
+<div class="panel"><h2>System Status</h2><div class="note">Birthday Club data is read from the existing Birthday Club table and copied into this separate Email Center subscriber list. This page does not change your booking, Stripe, Vault, or Birthday Club code.</div></div></section>
+
+
+<section id="opportunities" class="view">
+<div class="panel">
+  <h2>Marketing Opportunities</h2>
+  <div class="note" style="margin-bottom:14px">The Email Center reads subscriber status, birthday timing, discount status, engagement and booking history to suggest who may be worth contacting.</div>
+  <div id="opportunityList"></div>
+</div>
+</section>
+
+<section id="subscribers" class="view">
+<div class="panel">
+<div class="toolbar">
+<input id="search" class="input" placeholder="Search name or email…" oninput="renderSubscribers()">
+<select id="filter" class="input" onchange="renderSubscribers()">
+<option value="all">All subscribers</option><option value="available">$50 available</option><option value="redeemed">$50 redeemed</option><option value="subscribed">Subscribed</option><option value="paused">Paused</option><option value="past">Past customers</option><option value="never">Never booked</option><option value="engaged">Highly engaged</option><option value="inactive">Inactive</option><option value="bounced">Bounced</option>
+</select>
+<select id="sourceFilter" class="input" onchange="renderSubscribers()"><option value="all">All sources</option><option value="birthday_club">Birthday Club</option><option value="vault">Vault</option><option value="manual">Manual</option></select>
+<select id="monthFilter" class="input" onchange="renderSubscribers()"><option value="">All birthday months</option></select>
+<button class="btn" onclick="exportSubscribers()">⬇ Export CSV</button>
+</div>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Birthday</th><th>Interest</th><th>$50</th><th>Engagement</th><th>Status</th><th>Actions</th></tr></thead><tbody id="subscriberRows"></tbody></table></div>
+</div>
+</section>
+
+
+
+<section id="groups" class="view">
+<div class="cards">
+ <div class="card"><div class="label">Smart Groups</div><div class="metric" id="mGroups">—</div></div>
+ <div class="card"><div class="label">Custom Groups</div><div class="metric" id="mCustomGroups">—</div></div>
+ <div class="card"><div class="label">Frequency Guard</div><div class="metric" style="font-size:18px" id="mGuard">ON</div></div>
+ <div class="card"><div class="label">Minimum Gap</div><div class="metric" id="mGap">7d</div></div>
+</div>
+<div class="grid2">
+ <div class="panel"><h2>Smart Audiences</h2><div class="note" style="margin-bottom:12px">These groups update from customer data. One person can belong to several groups at the same time.</div><div id="groupList"></div></div>
+ <div class="panel"><h2>Create Custom Group</h2><label>Group Name</label><input id="gName" class="input" placeholder="Church Contacts"><br><br><label>Description</label><textarea id="gDesc" class="input" style="min-height:100px" placeholder="What is this group for?"></textarea><br><button class="btn primary" onclick="createGroup()">Create Group</button>
+ <hr style="border:0;border-top:1px solid #302440;margin:22px 0"><h2>Contact Frequency Guard</h2><label>Minimum days between general marketing emails</label><select id="guardDays" class="input" onchange="saveGuard()"><option value="3">3 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="14">14 days</option></select><div class="note" style="margin-top:8px">Birthday reminders can be prioritized so a general promotion does not crowd them.</div></div>
+</div></section>
+<section id="campaigns" class="view">
+<div class="grid2">
+  <div class="panel">
+    <h2>Create Custom Campaign</h2>
+    <label>Campaign Name</label><input id="cName" class="input" placeholder="September VIP Update"><br><br>
+    <label>Subject</label><input id="cSubject" class="input" placeholder="Something fun is coming…"><br><br>
+    <label>Audience</label>
+    <select id="cAudience" class="input">
+      <option value="all">All subscribed customers</option>
+      <option value="discount_available">Only unused $50 discounts</option>
+      <option value="birthday_month">Specific birthday month</option>
+      <option value="past_customers">Past customers</option>
+      <option value="never_booked">Leads / never booked</option>
+      <option value="recent_customers">Recent customers</option>
+      <option value="inactive_subscribers">Inactive subscribers</option>
+      <option value="vault_participants">Vault participants</option>
+    </select><br><br>
+    <select id="cMonth" class="input"><option value="">Choose birthday month if needed</option></select><br><br>
+    <label>Email Message / HTML</label>
+    <textarea id="cBody" class="input" placeholder="Write your message here. You can also paste simple HTML for a designed email."></textarea>
+    <div class="note" style="margin-top:7px">You can use HTML for layouts, buttons and hosted images. Attachment/image upload will be added after the email provider is connected.</div><br>
+    <label>Schedule</label>
+    <select id="cSendMode" class="input" onchange="document.getElementById('cScheduleWrap').style.display=this.value==='schedule'?'block':'none'">
+      <option value="draft">Save as Draft</option>
+      <option value="schedule">Schedule for Later</option>
+    </select>
+    <div id="cScheduleWrap" style="display:none;margin-top:10px"><input id="cSchedule" class="input" type="datetime-local"></div><br>
+    <div class="toolbar">
+      <button class="btn" onclick="openPreview()">👁 Preview Email</button><button class="btn" onclick="saveDraftLocal()">💾 Save Draft</button><button class="btn" onclick="sendTest()">🧪 Send Test</button><button class="btn primary" onclick="saveCampaign()">Save Campaign</button>
+    </div>
+  </div>
+  <div class="panel"><h2>Campaigns</h2><div id="campaignList" class="empty">Loading…</div></div>
+</div>
+</section>
+
+
+<section id="automations" class="view">
+<div class="warn">The automation rules and schedules are fully configurable now. Actual unattended sending will be activated only after we connect a real email delivery provider, so the system will never falsely claim an email was sent.</div>
+<div class="panel">
+  <h2>Automation Rules</h2>
+  <div id="automationList"></div>
+</div>
+</section>
+
+
+<section id="calendar" class="view">
+<div class="panel">
+<div class="toolbar"><button class="btn" onclick="calMove(-1)">←</button><div style="font-weight:900;font-size:18px;min-width:180px;text-align:center" id="calTitle"></div><button class="btn" onclick="calMove(1)">→</button></div>
+<div id="marketingCalendar" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px"></div>
+</div>
+</section>
+
+<section id="analytics" class="view">
+<div class="cards">
+<div class="card"><div class="label">Campaigns Sent</div><div class="metric" id="aSent">0</div></div>
+<div class="card"><div class="label">Delivered</div><div class="metric" id="aDelivered">0</div></div>
+<div class="card"><div class="label">Opened</div><div class="metric" id="aOpened">0</div></div>
+<div class="card"><div class="label">Clicked</div><div class="metric" id="aClicked">0</div></div>
+</div>
+<div class="panel"><h2>Campaign Performance</h2><div class="note" style="margin-bottom:12px">Delivery, bounce, open and click statistics will populate from the email provider after it is connected.</div><div class="tablewrap"><table><thead><tr><th>Campaign</th><th>Sent</th><th>Delivered</th><th>Bounced</th><th>Opened</th><th>Clicked</th><th>Unsubscribed</th><th>Booking Clicks</th><th>Conversions</th></tr></thead><tbody id="analyticsRows"></tbody></table></div></div>
+</section>
+<section id="templates" class="view"><div class="grid2"><div class="panel"><h2>Email Templates</h2><div id="templateList"></div></div><div class="panel"><h2>Edit Template</h2><input id="tId" type="hidden"><label>Name</label><input id="tName" class="input"><br><br><label>Subject</label><input id="tSubject" class="input"><br><br><label>Message</label><textarea id="tBody" class="input"></textarea><br><button class="btn primary" onclick="saveTemplate()">Save Template</button></div></div></section>
+
+<section id="history" class="view"><div class="panel"><h2>Email History</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Email</th><th>Subject</th><th>Status</th></tr></thead><tbody id="historyRows"></tbody></table></div></div></section>
+
+<section id="brand" class="view">
+<div class="grid2">
+<div class="panel"><h2>Permanent Brand Settings</h2>
+<label>Brand Name</label><input id="bBrand" class="input"><br><br>
+<label>Sender Display Name</label><input id="bSenderName" class="input"><br><br>
+<label>Sender Email</label><input id="bSenderEmail" class="input" placeholder="hello@vippartypods.com"><div class="note">This becomes active after the sending domain/provider is connected.</div><br>
+<label>Reply-To Email</label><input id="bReply" class="input"><br><br>
+<label>Website</label><input id="bWebsite" class="input"><br><br>
+<label>Phone</label><input id="bPhone" class="input"><br><br>
+<label>Facebook</label><input id="bFacebook" class="input" value="@VIP PARTY PODS"><br><br>
+<label>TikTok</label><input id="bTikTok" class="input" value="@VIP PARTY PODS"><br><br>
+<label>Instagram</label><input id="bInstagram" class="input" value="@VIP PARTY PODS"><br><br>
+<label>Logo</label><input id="bLogo" class="input" placeholder="Hosted logo URL (optional)">
+    <div class="toolbar" style="margin-top:8px"><input id="bLogoFile" type="file" accept="image/*" class="input"><button class="btn" onclick="useUploadedLogo()">Use Uploaded Logo</button></div>
+    <div class="note">Your VIP Party Pods logo is the permanent default. You can replace it later without changing the rest of the system.</div><br>
+<label>Mailing Address (optional setup field)</label><input id="bAddress" class="input" placeholder="Leave blank for now"><div class="note">Not shown in your branded preview unless you choose to add one later.</div><br><br>
+<button class="btn primary" onclick="saveBrand()">Save Brand Settings</button>
+</div>
+<div class="panel"><h2>Default Email Styling</h2>
+<div class="grid2"><div><label>Primary</label><input id="bPrimary" type="color" class="input"></div><div><label>Secondary</label><input id="bSecondary" type="color" class="input"></div></div><br>
+<label>Default Button Text</label><input id="bButtonText" class="input"><br><br>
+<label>Default Button URL</label><input id="bButtonUrl" class="input"><br><br>
+<label>Permanent Footer</label><textarea id="bFooter" class="input" placeholder="VIP Party Pods contact + social footer"></textarea><br>
+<label>Subscription Footer Text</label><textarea id="bUnsubText" class="input" style="min-height:100px"></textarea><br>
+<button class="btn primary" onclick="saveBrand()">Save Styling</button>
+<hr style="border:0;border-top:1px solid #302440;margin:22px 0"><h2>Brand Preview</h2><div class="note" style="margin-bottom:10px">Default branding: VIP Party Pods • neon-on-black • BOOK NOW button • phone • website • email • Facebook/TikTok/Instagram • unsubscribe.</div><div id="brandPreview"></div>
+</div>
+</div>
+</section>
+<section id="unsubscribed" class="view"><div class="panel"><h2>Suppression / Do Not Email</h2><div class="note" style="margin-bottom:12px">Unsubscribed and bounced contacts remain in your business records but are suppressed from marketing sends.</div><div class="tablewrap"><table><thead><tr><th>Name</th><th>Email</th><th>Unsubscribed</th><th>Action</th></tr></thead><tbody id="unsubRows"></tbody></table></div></div></section>
+</main></div>
+
+
+<div id="contactOverlay" class="preview-overlay">
+<div class="preview-box">
+<div class="preview-top"><div><b>Subscriber Profile</b><div class="sub">Customer timeline and marketing status</div></div><button class="btn" onclick="closeContact()">Close</button></div>
+<div id="contactProfile"></div>
+</div></div>
+<div id="previewOverlay" class="preview-overlay">
+  <div class="preview-box">
+    <div class="preview-top">
+      <div><b>Email Preview</b><div class="sub">This shows how the email content will look to a customer.</div></div>
+      <div class="preview-actions">
+        <button class="btn" onclick="setPreviewMode('desktop')">Desktop</button>
+        <button class="btn" onclick="setPreviewMode('mobile')">Mobile</button>
+        <button class="btn" onclick="closePreview()">Close</button>
+      </div>
+    </div>
+    <div id="mailFrame" class="mailframe desktop">
+      <div class="mailhead"><b>From:</b> VIP Party Pods &lt;sender not connected yet&gt;<br><b>Subject:</b> <span id="previewSubject"></span></div>
+      <div class="mailbody" id="previewBody"></div>
+      <div class="mailfoot">VIP Party Pods • You are receiving this because you subscribed to VIP Party Pods emails.<br><u>Unsubscribe</u></div>
+    </div>
+  </div>
+</div>
+<script>
+const SB='https://gsrwmzojojkacxpahudj.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYXNlIiwicmVmIjoiZ3Nyd216b2pvamthY3hwYWh1ZGoiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4MTQ2ODYzNSwiZXhwIjoyMDk3MDQ0NjM1fQ.VhMPVeDrrW525Y6FaP0CjJe0zrBnB7keV54w9CMrI40';
+const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Prefer:'return=representation'};
+let subscribers=[],templates=[],campaigns=[],automations=[],history=[],groups=[],settings=[],brand=[],activities=[];
+const months=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+document.getElementById('cMonth').innerHTML='<option value="">Choose birthday month if needed</option>'+months.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+document.getElementById('monthFilter').innerHTML='<option value="">All birthday months</option>'+months.slice(1).map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+async function api(path,opt={}){let r=await fetch(SB+'/rest/v1/'+path,{...opt,headers:{...H,...(opt.headers||{})}});if(!r.ok)throw new Error(await r.text());let t=await r.text();return t?JSON.parse(t):[]}
+function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===v));document.getElementById(v).classList.add('active');document.getElementById('pageTitle').textContent=({dashboard:'Dashboard',subscribers:'Subscribers',campaigns:'Campaigns',groups:'Smart Groups',opportunities:'Opportunities',automations:'Automations',calendar:'Marketing Calendar',analytics:'Analytics',brand:'Brand Settings',templates:'Templates',history:'Email History',unsubscribed:'Unsubscribed'})[v];}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.view));
+async function load(){try{[subscribers,templates,campaigns,automations,history,groups,settings,brand,activities]=await Promise.all([api('email_subscribers?select=*&order=created_at.desc'),api('email_templates?select=*&order=created_at.asc'),api('email_campaigns?select=*&order=created_at.desc'),api('email_automations?select=*&order=created_at.asc'),api('email_history?select=*&order=created_at.desc&limit=200'),api('email_groups?select=*&order=group_type.desc,name.asc'),api('email_settings?select=*'),api('email_brand_settings?select=*&limit=1'),api('email_contact_activity?select=*&order=created_at.desc&limit=500')]);renderAll()}catch(e){alert('Email Center could not load. '+e.message)}}
+function renderAll(){let active=subscribers.filter(x=>x.marketing_status==='subscribed');mSubs.textContent=active.length;mDiscount.textContent=active.filter(x=>!x.discount_redeemed).length;let nm=new Date().getMonth()+2;if(nm===13)nm=1;mBirthdays.textContent=active.filter(x=>Number(x.birthday_month)===nm).length;mUnsubs.textContent=subscribers.filter(x=>x.marketing_status==='unsubscribed').length;renderSubscribers();renderTemplates();renderCampaigns();renderAutomations();renderHistory();renderUnsubs();renderGroups();renderOpportunities();renderAnalytics();renderCalendar();renderBrand()}
+
+function smartCount(key){
+ const active=subscribers.filter(x=>x.marketing_status==='subscribed');
+ const now=Date.now(),day=86400000;
+ if(key==='active_subscribers')return active.length;
+ if(key==='discount_available')return active.filter(x=>!x.discount_redeemed).length;
+ if(key==='discount_redeemed')return active.filter(x=>x.discount_redeemed).length;
+ if(key==='past_customers')return active.filter(x=>Number(x.completed_bookings||0)>0).length;
+ if(key==='never_booked')return active.filter(x=>Number(x.completed_bookings||0)===0).length;
+ if(key==='recent_customers')return active.filter(x=>x.last_booking_at&&(now-new Date(x.last_booking_at).getTime())<=90*day).length;
+ if(key==='inactive_subscribers')return active.filter(x=>!x.last_engagement_at||(now-new Date(x.last_engagement_at).getTime())>=180*day).length;
+ if(key==='vault_participants')return active.filter(x=>x.vault_participant).length;
+ if(key==='unsubscribed')return subscribers.filter(x=>x.marketing_status==='unsubscribed'||x.email_bounced).length;
+ if(key==='highly_engaged')return active.filter(x=>Number(x.engagement_score||0)>=60).length;
+ if(key==='opening_not_booking')return active.filter(x=>Number(x.total_opens||0)>0&&Number(x.completed_bookings||0)===0).length;
+ if(key==='not_engaging')return active.filter(x=>Number(x.engagement_score||0)<=10).length;
+ if(key==='recently_engaged')return active.filter(x=>{let d=x.last_click_at||x.last_open_at;return d&&(now-new Date(d).getTime())<=30*day}).length;
+ if(key==='interest_battle_bash')return active.filter(x=>x.attraction_interest==='Battle Bash Pod').length;
+ if(key==='interest_maze_chaser')return active.filter(x=>x.attraction_interest==='Maze Chaser').length;
+ if(key==='interest_glow_up')return active.filter(x=>x.attraction_interest==='Glow Up Pod').length;
+ if(key==='interest_party_tent')return active.filter(x=>x.attraction_interest==='Inflatable Party Tent').length;
+ if(key==='birthday_coming_up'){
+   let target=(new Date().getMonth()+1+3)%12+1;
+   return active.filter(x=>Number(x.birthday_month)===target).length;
+ }
+ return null;
+}
+function renderGroups(){
+ if(!document.getElementById('groupList'))return;
+ let smart=groups.filter(x=>x.group_type==='smart'),custom=groups.filter(x=>x.group_type==='custom');
+ mGroups.textContent=smart.length;mCustomGroups.textContent=custom.length;
+ let guard=settings.find(x=>x.setting_key==='contact_frequency_guard');
+ let gv=guard?.setting_value||{enabled:true,minimum_days_between_marketing_emails:7};
+ mGuard.textContent=gv.enabled===false?'OFF':'ON';mGap.textContent=(gv.minimum_days_between_marketing_emails||7)+'d';guardDays.value=String(gv.minimum_days_between_marketing_emails||7);
+ groupList.innerHTML=groups.map(x=>`<div class="toggle"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.description||'')}</div></div><div style="text-align:right"><span class="tag">${x.group_type==='smart'?(smartCount(x.system_key)??'Auto'):'Custom'}</span>${x.group_type==='custom'?` <button class="btn danger" onclick="deleteGroup(${x.id})">Delete</button>`:''}</div></div>`).join('');
+}
+async function createGroup(){
+ if(!gName.value.trim())return alert('Enter a group name.');
+ await api('email_groups',{method:'POST',body:JSON.stringify({name:gName.value.trim(),description:gDesc.value.trim(),group_type:'custom',rules:{}})});
+ gName.value='';gDesc.value='';await load();
+}
+async function deleteGroup(id){if(!confirm('Delete this custom group?'))return;await api('email_groups?id=eq.'+id,{method:'DELETE'});await load()}
+async function saveGuard(){
+ let x=settings.find(x=>x.setting_key==='contact_frequency_guard');
+ let val={...(x?.setting_value||{}),enabled:true,minimum_days_between_marketing_emails:Number(guardDays.value),birthday_priority:true,transactional_exempt:true};
+ if(x)await api('email_settings?id=eq.'+x.id,{method:'PATCH',body:JSON.stringify({setting_value:val,updated_at:new Date().toISOString()})});
+ else await api('email_settings',{method:'POST',body:JSON.stringify({setting_key:'contact_frequency_guard',setting_value:val})});
+ await load();
+}
+function renderSubscribers(){
+ let q=(search.value||'').toLowerCase(),f=filter.value,src=sourceFilter.value,mo=monthFilter.value,now=Date.now(),day=86400000;
+ let a=subscribers.filter(x=>(String(x.name||'')+' '+String(x.email||'')).toLowerCase().includes(q))
+ .filter(x=>src==='all'||x.source===src)
+ .filter(x=>!mo||Number(x.birthday_month)===Number(mo))
+ .filter(x=>{
+   if(f==='all')return true;if(f==='available')return !x.discount_redeemed;if(f==='redeemed')return x.discount_redeemed;
+   if(f==='subscribed'||f==='paused')return x.marketing_status===f;
+   if(f==='past')return Number(x.completed_bookings||0)>0;if(f==='never')return Number(x.completed_bookings||0)===0;
+   if(f==='engaged')return Number(x.engagement_score||0)>=60;
+   if(f==='inactive')return !x.last_engagement_at||(now-new Date(x.last_engagement_at).getTime())>=180*day;
+   if(f==='bounced')return !!x.email_bounced;return true;
+ });
+ subscriberRows.innerHTML=a.map(x=>`<tr>
+ <td><button style="border:0;background:none;color:#fff;font-weight:800;cursor:pointer;padding:0" onclick="openContact(${x.id})">${esc(x.name)}</button></td>
+ <td>${esc(x.email)}</td><td>${esc(x.source||'—')}</td><td>${months[x.birthday_month]||'—'}</td><td>${esc(x.attraction_interest||'—')}</td>
+ <td><span class="tag ${x.discount_redeemed?'pink':'green'}">${x.discount_redeemed?'Redeemed':'Available'}</span></td>
+ <td>${Number(x.engagement_score||0)}</td><td>${x.email_bounced?'<span class="tag danger">Bounced</span>':esc(x.marketing_status)}</td>
+ <td><button class="btn" onclick="openContact(${x.id})">Open</button> <button class="btn" onclick="setStatus(${x.id},'${x.marketing_status==='paused'?'subscribed':'paused'}')">${x.marketing_status==='paused'?'Resume':'Pause'}</button> <button class="btn danger" onclick="setStatus(${x.id},'unsubscribed')">Unsubscribe</button></td></tr>`).join('')||'<tr><td colspan="9" class="empty">No matching subscribers.</td></tr>';
+}
+async function setStatus(id,status){await api('email_subscribers?id=eq.'+id,{method:'PATCH',body:JSON.stringify({marketing_status:status,unsubscribed_at:status==='unsubscribed'?new Date().toISOString():null,updated_at:new Date().toISOString()})});await load()}
+
+function currentOpportunities(){
+ const active=subscribers.filter(x=>x.marketing_status==='subscribed'&&!x.email_bounced),now=Date.now(),day=86400000;
+ let target=(new Date().getMonth()+1+3)%12+1;
+ return [
+  {title:`${active.filter(x=>Number(x.birthday_month)===target).length} birthdays are about 3 months away`,desc:'Birthday Club members entering their ideal booking-reminder window.',aud:'birthday_month',action:'Create birthday reminder'},
+  {title:`${active.filter(x=>!x.discount_redeemed).length} unused $50 discounts`,desc:'Birthday Club members still have their VIP discount available.',aud:'discount_available',action:'Create discount reminder'},
+  {title:`${active.filter(x=>Number(x.completed_bookings||0)===0).length} subscribers have never booked`,desc:'Potential leads who know the brand but have not converted yet.',aud:'never_booked',action:'Create first-booking campaign'},
+  {title:`${active.filter(x=>!x.last_engagement_at||(now-new Date(x.last_engagement_at).getTime())>=90*day).length} subscribers have been quiet for 90+ days`,desc:'A light check-in or announcement may re-engage them.',aud:'inactive_subscribers',action:'Create check-in campaign'}
+ ];
+}
+function renderOpportunities(){
+ let ops=currentOpportunities();
+ opportunityList.innerHTML=ops.map(o=>`<div class="card" style="margin-bottom:10px"><b>${esc(o.title)}</b><div class="muted" style="margin:5px 0 10px">${esc(o.desc)}</div><button class="btn primary" onclick="startAudienceCampaign('${o.aud}')">${esc(o.action)}</button></div>`).join('');
+ dashOpportunities.innerHTML=ops.slice(0,3).map(o=>`<div class="toggle"><div><b>${esc(o.title)}</b><div class="muted">${esc(o.desc)}</div></div></div>`).join('');
+ let act=subscribers.filter(x=>x.marketing_status==='subscribed'),eng=act.filter(x=>Number(x.engagement_score||0)>=60).length,quiet=act.filter(x=>Number(x.engagement_score||0)<=10).length;
+ dashEngagement.innerHTML=`<div class="toggle"><span>Highly engaged</span><b>${eng}</b></div><div class="toggle"><span>Low engagement</span><b>${quiet}</b></div><div class="toggle"><span>Past customers</span><b>${act.filter(x=>Number(x.completed_bookings||0)>0).length}</b></div>`;
+}
+function startAudienceCampaign(aud){go('campaigns');cAudience.value=aud;window.scrollTo(0,0)}
+function renderAnalytics(){
+ const sent=campaigns.filter(x=>x.status==='sent');aSent.textContent=sent.length;
+ aDelivered.textContent=campaigns.reduce((n,x)=>n+Number(x.delivered_count||0),0);
+ aOpened.textContent=campaigns.reduce((n,x)=>n+Number(x.opened_count||0),0);
+ aClicked.textContent=campaigns.reduce((n,x)=>n+Number(x.clicked_count||0),0);
+ analyticsRows.innerHTML=campaigns.filter(x=>!x.archived).map(x=>`<tr><td>${esc(x.name)}</td><td>${Number(x.sent_count||0)}</td><td>${Number(x.delivered_count||0)}</td><td>${Number(x.bounced_count||0)}</td><td>${Number(x.opened_count||0)}</td><td>${Number(x.clicked_count||0)}</td><td>${Number(x.unsubscribed_count||0)}</td><td>${Number(x.booking_click_count||0)}</td><td>${Number(x.booking_conversion_count||0)}</td></tr>`).join('')||'<tr><td colspan="9" class="empty">No campaign performance yet.</td></tr>';
+}
+let calDate=new Date();
+function calMove(n){calDate=new Date(calDate.getFullYear(),calDate.getMonth()+n,1);renderCalendar()}
+function renderCalendar(){
+ if(!document.getElementById('marketingCalendar'))return;
+ let y=calDate.getFullYear(),m=calDate.getMonth();calTitle.textContent=new Date(y,m,1).toLocaleString('en-US',{month:'long',year:'numeric'});
+ let h=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="label" style="text-align:center;padding:8px">${x}</div>`).join('');
+ let first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();for(let i=0;i<first;i++)h+='<div></div>';
+ for(let d=1;d<=dim;d++){let key=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`,items=campaigns.filter(x=>x.scheduled_for&&String(x.scheduled_for).slice(0,10)===key);
+ h+=`<div class="card" style="min-height:90px;padding:8px"><b>${d}</b>${items.map(x=>`<div class="tag" style="margin-top:6px;display:block">${esc(x.name)}</div>`).join('')}</div>`}marketingCalendar.innerHTML=h;
+}
+function saveDraftLocal(){
+ localStorage.setItem('vip_email_campaign_autosave',JSON.stringify({name:cName.value,subject:cSubject.value,audience:cAudience.value,month:cMonth.value,body:cBody.value,mode:cSendMode.value,schedule:cSchedule.value,at:new Date().toISOString()}));
+ alert('Draft saved on this device.');
+}
+function restoreDraftLocal(){try{let d=JSON.parse(localStorage.getItem('vip_email_campaign_autosave')||'null');if(!d)return;cName.value=d.name||'';cSubject.value=d.subject||'';cAudience.value=d.audience||'all';cMonth.value=d.month||'';cBody.value=d.body||'';cSendMode.value=d.mode||'draft';cSchedule.value=d.schedule||'';cScheduleWrap.style.display=cSendMode.value==='schedule'?'block':'none'}catch(e){}}
+function exportSubscribers(){
+ const rows=[['Name','Email','Source','Birthday Month','Interest','Discount','Status','Engagement','Completed Bookings'],...subscribers.map(x=>[x.name,x.email,x.source,months[x.birthday_month]||'',x.attraction_interest||'',x.discount_redeemed?'Redeemed':'Available',x.marketing_status,x.engagement_score||0,x.completed_bookings||0])];
+ let csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n'),blob=new Blob([csv],{type:'text/csv'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='VIP-Email-Subscribers.csv';a.click();URL.revokeObjectURL(u);
+}
+function openContact(id){
+ let x=subscribers.find(s=>s.id===id);if(!x)return;let a=activities.filter(z=>z.subscriber_id===id).slice(0,50);
+ contactProfile.innerHTML=`<div class="grid2"><div class="panel"><h2>${esc(x.name||'Subscriber')}</h2><div class="toggle"><span>Email</span><b>${esc(x.email)}</b></div><div class="toggle"><span>Source</span><b>${esc(x.source||'—')}</b></div><div class="toggle"><span>Birthday</span><b>${months[x.birthday_month]||'—'}</b></div><div class="toggle"><span>Interest</span><b>${esc(x.attraction_interest||'—')}</b></div><div class="toggle"><span>$50</span><b>${x.discount_redeemed?'Redeemed':'Available'}</b></div><div class="toggle"><span>Bookings</span><b>${Number(x.completed_bookings||0)}</b></div><div class="toggle"><span>Engagement</span><b>${Number(x.engagement_score||0)}</b></div><div class="toggle"><span>Marketing</span><b>${esc(x.marketing_status)}</b></div></div><div class="panel"><h2>Timeline</h2>${a.map(z=>`<div class="toggle"><div><b>${esc(z.activity_label||z.activity_type)}</b><div class="muted">${new Date(z.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="empty">No email activity yet.</div>'}</div></div>`;contactOverlay.classList.add('show');
+}
+function closeContact(){contactOverlay.classList.remove('show')}
+function renderBrand(){
+ let b=brand[0]||{};
+ const savedLogo=localStorage.getItem('vip_email_brand_logo')||'';
+ bBrand.value=b.brand_name||'VIP Party Pods';
+ bSenderName.value=b.sender_name||'VIP Party Pods';
+ bSenderEmail.value=b.sender_email||'';
+ bReply.value=b.reply_to_email||'vippartypods@gmail.com';
+ bWebsite.value=b.website_url||'https://www.vippartypods.com';
+ bPhone.value=b.phone||'423-255-8034';
+ bFacebook.value=(b.social_links&&b.social_links.facebook)||'@VIP PARTY PODS';
+ bTikTok.value=(b.social_links&&b.social_links.tiktok)||'@VIP PARTY PODS';
+ bInstagram.value=(b.social_links&&b.social_links.instagram)||'@VIP PARTY PODS';
+ bLogo.value=b.logo_url||'';
+ bAddress.value=b.physical_address||'';
+ bPrimary.value=b.primary_color||'#8b5cf6';
+ bSecondary.value=b.secondary_color||'#ec4899';
+ bButtonText.value=b.button_text||'BOOK NOW';
+ bButtonUrl.value=b.button_url||'https://www.vippartypods.com';
+ bFooter.value=b.footer_html||'VIP Party Pods\\n423-255-8034 • www.vippartypods.com • vippartypods@gmail.com\\nFacebook • TikTok • Instagram: @VIP PARTY PODS';
+ bUnsubText.value=b.unsubscribe_text||'You are receiving this because you subscribed to VIP Party Pods updates. You can unsubscribe at any time.';
+ const logo=(savedLogo||b.logo_url||'');
+ const social=`Facebook: ${esc(bFacebook.value)} &nbsp; • &nbsp; TikTok: ${esc(bTikTok.value)} &nbsp; • &nbsp; Instagram: ${esc(bInstagram.value)}`;
+ brandPreview.innerHTML=`<div style="background:#050505;color:#fff;border-radius:14px;overflow:hidden;border:1px solid #302440">
+   <div style="padding:22px;text-align:center;background:#050505">${logo?`<img src="${logo}" style="max-height:120px;max-width:280px;border-radius:8px">`:`<div style="font-size:28px;font-weight:900;background:linear-gradient(90deg,#22d3ee,#8b5cf6,#ec4899,#84cc16);-webkit-background-clip:text;color:transparent">VIP Party Pods</div>`}</div>
+   <div style="padding:26px;background:#fff;color:#111"><h2 style="margin-top:0">Your Campaign Content</h2><p>Your designed email, flyer, announcement or promotion appears here.</p><a href="${esc(bButtonUrl.value||'#')}" style="display:inline-block;padding:12px 22px;background:${bSecondary.value};color:#fff;border-radius:9px;text-decoration:none;font-weight:900">${esc(bButtonText.value||'BOOK NOW')}</a></div>
+   <div style="padding:18px;background:#08080a;text-align:center;font-size:12px;line-height:1.7">
+     <b>VIP Party Pods</b><br>423-255-8034 &nbsp; • &nbsp; www.vippartypods.com &nbsp; • &nbsp; vippartypods@gmail.com<br>${social}<br>
+     <span style="color:#aaa">${esc(bUnsubText.value)}</span><br><u>Unsubscribe</u>
+   </div></div>`;
+}
+async function useUploadedLogo(){
+ const f=bLogoFile.files&&bLogoFile.files[0];
+ if(!f)return alert('Choose your logo image first.');
+ const reader=new FileReader();
+ reader.onload=()=>{localStorage.setItem('vip_email_brand_logo',reader.result);renderBrand();alert('Logo saved as the default on this device.');};
+ reader.readAsDataURL(f);
+}
+async function saveBrand(){
+ let b=brand[0]||{},payload={
+   brand_name:bBrand.value||'VIP Party Pods',
+   sender_name:bSenderName.value||'VIP Party Pods',
+   sender_email:bSenderEmail.value||null,
+   reply_to_email:bReply.value||'vippartypods@gmail.com',
+   website_url:bWebsite.value||'https://www.vippartypods.com',
+   phone:bPhone.value||'423-255-8034',
+   logo_url:bLogo.value||null,
+   physical_address:bAddress.value||null,
+   primary_color:bPrimary.value,
+   secondary_color:bSecondary.value,
+   button_text:bButtonText.value||'BOOK NOW',
+   button_url:bButtonUrl.value||'https://www.vippartypods.com',
+   footer_html:bFooter.value,
+   unsubscribe_text:bUnsubText.value,
+   social_links:{facebook:bFacebook.value||'@VIP PARTY PODS',tiktok:bTikTok.value||'@VIP PARTY PODS',instagram:bInstagram.value||'@VIP PARTY PODS'},
+   updated_at:new Date().toISOString()
+ };
+ if(b.id)await api('email_brand_settings?id=eq.'+b.id,{method:'PATCH',body:JSON.stringify(payload)});
+ else await api('email_brand_settings',{method:'POST',body:JSON.stringify(payload)});
+ await load();alert('VIP Party Pods brand settings saved.');
+}
+function renderTemplates(){templateList.innerHTML=templates.map(x=>`<div class="toggle"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.subject)}</div></div><button class="btn" onclick="editTemplate(${x.id})">Edit</button></div>`).join('')}
+function editTemplate(id){let x=templates.find(t=>t.id===id);if(!x)return;tId.value=x.id;tName.value=x.name;tSubject.value=x.subject;tBody.value=x.body_html}
+async function saveTemplate(){if(!tId.value)return alert('Choose a template first.');await api('email_templates?id=eq.'+tId.value,{method:'PATCH',body:JSON.stringify({name:tName.value,subject:tSubject.value,body_html:tBody.value,updated_at:new Date().toISOString()})});await load();alert('Template saved.')}
+function renderCampaigns(){
+ campaignList.className='';campaignList.innerHTML=campaigns.filter(x=>!x.archived).map(x=>`<div class="toggle"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.subject)} • ${esc(x.audience_type)}${x.scheduled_for?' • '+new Date(x.scheduled_for).toLocaleString():''}</div></div><div><span class="tag">${esc(x.status)}</span> <button class="btn" onclick="duplicateCampaign(${x.id})">Duplicate</button> <button class="btn danger" onclick="archiveCampaign(${x.id})">Archive</button></div></div>`).join('')||'<div class="empty">No active campaigns yet.</div>';
+}
+async function duplicateCampaign(id){let x=campaigns.find(c=>c.id===id);if(!x)return;await api('email_campaigns',{method:'POST',body:JSON.stringify({name:x.name+' Copy',subject:x.subject,body_html:x.body_html,audience_type:x.audience_type,audience_month:x.audience_month,status:'draft'})});await load()}
+async function archiveCampaign(id){await api('email_campaigns?id=eq.'+id,{method:'PATCH',body:JSON.stringify({archived:true,updated_at:new Date().toISOString()})});await load()}
+async function saveCampaign(){
+  if(!cName.value||!cSubject.value||!cBody.value)return alert('Add a campaign name, subject and message.');
+  const scheduled=cSendMode.value==='schedule'&&cSchedule.value?new Date(cSchedule.value).toISOString():null;
+  const status=scheduled?'scheduled':'draft';
+  await api('email_campaigns',{method:'POST',body:JSON.stringify({
+    name:cName.value,subject:cSubject.value,body_html:cBody.value,audience_type:cAudience.value,
+    audience_month:cAudience.value==='birthday_month'?Number(cMonth.value)||null:null,
+    status,scheduled_for:scheduled
+  })});
+  cName.value=cSubject.value=cBody.value='';cSchedule.value='';cSendMode.value='draft';cScheduleWrap.style.display='none';
+  await load();alert(status==='scheduled'?'Campaign scheduled. It will become send-ready once the email provider is connected.':'Campaign saved as a draft.');
+}
+function renderAutomations(){
+automationList.innerHTML=automations.map(x=>{
+  const birthday=x.automation_type==='birthday_booking';
+  const recurring=x.automation_type==='subscriber_check_in'||x.automation_type==='discount_reminder';
+  const audience=x.automation_type==='birthday_booking'?'Birthday Club members only':
+                 x.automation_type==='discount_reminder'?'Subscribed members with unused $50':'All subscribed customers';
+  return `<div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div><b style="font-size:15px">${esc(x.name)}</b><div class="muted" style="margin-top:4px">${audience}</div></div>
+      <button class="btn ${x.enabled?'primary':''}" onclick="toggleAutomation(${x.id},${!x.enabled})">${x.enabled?'ON ✓':'OFF'}</button>
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      ${birthday?`<div><label>Send before birthday</label><select class="input" onchange="updateAutomation(${x.id},'days_before',this.value)">
+        <option value="30" ${x.days_before==30?'selected':''}>1 month before</option>
+        <option value="60" ${x.days_before==60?'selected':''}>2 months before</option>
+        <option value="90" ${x.days_before==90?'selected':''}>3 months before</option>
+        <option value="120" ${x.days_before==120?'selected':''}>4 months before</option>
+      </select></div>`:''}
+      ${recurring?`<div><label>Repeat frequency</label><select class="input" onchange="updateAutomation(${x.id},'repeat_days',this.value)">
+        <option value="30" ${x.repeat_days==30?'selected':''}>Every 30 days</option>
+        <option value="60" ${x.repeat_days==60?'selected':''}>Every 60 days</option>
+        <option value="90" ${x.repeat_days==90?'selected':''}>Every 90 days</option>
+        <option value="120" ${x.repeat_days==120?'selected':''}>Every 120 days</option>
+        <option value="180" ${x.repeat_days==180?'selected':''}>Every 6 months</option>
+      </select></div>`:''}
+      <div><label>Email Template</label><select class="input" onchange="updateAutomation(${x.id},'template_id',this.value)">
+        ${templates.map(t=>`<option value="${t.id}" ${x.template_id==t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+      </select></div>
+    </div>
+  </div>`;
+}).join('')||'<div class="empty">Automation rules will appear here.</div>';
+}
+
+function openPreview(){
+ const b=brand[0]||{},savedLogo=localStorage.getItem('vip_email_brand_logo')||'',logo=savedLogo||b.logo_url||'';
+ previewSubject.textContent=cSubject.value||'(No subject yet)';
+ let body=cBody.value||'<p style="color:#777">Your email message will appear here.</p>';
+ if(!/[<>]/.test(body)) body=esc(body).replace(/\n/g,'<br>');
+ const header=logo?`<div style="background:#050505;text-align:center;padding:18px"><img src="${logo}" style="max-height:105px;max-width:260px"></div>`:`<div style="background:#050505;color:white;text-align:center;padding:20px;font-size:24px;font-weight:900">VIP Party Pods</div>`;
+ const btn=`<div style="text-align:center;margin:24px 0"><a href="${esc(b.button_url||'https://www.vippartypods.com')}" style="display:inline-block;padding:12px 22px;background:${b.secondary_color||'#ec4899'};color:white;border-radius:8px;text-decoration:none;font-weight:900">${esc(b.button_text||'BOOK NOW')}</a></div>`;
+ previewBody.innerHTML=header+`<div style="padding:4px 0">${body.replaceAll('{{name}}','Customer')}</div>`+btn;
+ const socials=b.social_links||{facebook:'@VIP PARTY PODS',tiktok:'@VIP PARTY PODS',instagram:'@VIP PARTY PODS'};
+ document.querySelector('.mailfoot').innerHTML=`<b>VIP Party Pods</b><br>423-255-8034 • www.vippartypods.com • vippartypods@gmail.com<br>Facebook ${esc(socials.facebook||'@VIP PARTY PODS')} • TikTok ${esc(socials.tiktok||'@VIP PARTY PODS')} • Instagram ${esc(socials.instagram||'@VIP PARTY PODS')}<br><br>${esc(b.unsubscribe_text||'You are receiving this because you subscribed to VIP Party Pods updates. You can unsubscribe at any time.')}<br><u>Unsubscribe</u>`;
+ previewOverlay.classList.add('show');
+}
+function closePreview(){previewOverlay.classList.remove('show')}
+function setPreviewMode(mode){mailFrame.className='mailframe '+mode}
+function sendTest(){
+  alert('The test-send button is ready in the workflow, but actual delivery is intentionally disabled until we connect your sending email/provider. Preview works now; once the provider is connected, this button will send only to your chosen test address.');
+}
+async function updateAutomation(id,field,value){
+  const payload={updated_at:new Date().toISOString()};
+  payload[field]=(field==='days_before'||field==='repeat_days'||field==='template_id')?Number(value):value;
+  await api('email_automations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(payload)});
+  await load();
+}
+async function toggleAutomation(id,v){await api('email_automations?id=eq.'+id,{method:'PATCH',body:JSON.stringify({enabled:v,updated_at:new Date().toISOString()})});await load()}
+function renderHistory(){historyRows.innerHTML=history.map(x=>`<tr><td>${new Date(x.created_at).toLocaleString()}</td><td>${esc((subscribers.find(s=>s.id===x.subscriber_id)||{}).name||'—')}</td><td>${esc(x.email)}</td><td>${esc(x.subject||'')}</td><td>${esc(x.delivery_status)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No emails sent yet.</td></tr>'}
+function renderUnsubs(){let a=subscribers.filter(x=>x.marketing_status==='unsubscribed'||x.email_bounced);unsubRows.innerHTML=a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.email)}</td><td>${x.email_bounced?'Bounced: '+esc(x.bounce_reason||''):(x.unsubscribed_at?new Date(x.unsubscribed_at).toLocaleString():'Unsubscribed')}</td><td>${x.email_bounced?'<span class="tag">Provider suppression</span>':`<button class="btn" onclick="setStatus(${x.id},'subscribed')">Resubscribe</button>`}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No suppressed contacts.</td></tr>'}
+async function syncBirthday(){try{let b=await api('birthday_club_members?select=id,parent_name,email,birthday_month,discount_redeemed,consent,attraction_interest&email=not.is.null');for(let x of b){if(!x.email)continue;let body={source:'birthday_club',source_member_id:x.id,name:x.parent_name,email:x.email.trim().toLowerCase(),birthday_month:x.birthday_month,discount_redeemed:!!x.discount_redeemed,attraction_interest:x.attraction_interest||null,updated_at:new Date().toISOString()};let existing=subscribers.find(s=>s.email.toLowerCase()===body.email);if(existing){delete body.email;await api('email_subscribers?id=eq.'+existing.id,{method:'PATCH',body:JSON.stringify(body)})}else if(x.consent){await api('email_subscribers',{method:'POST',body:JSON.stringify({...body,marketing_status:'subscribed'})})}}await load();alert('Birthday Club synced successfully.')}catch(e){alert('Sync failed: '+e.message)}}
+load();setTimeout(restoreDraftLocal,700);
+</script></body></html>
