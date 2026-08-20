@@ -455,6 +455,23 @@ function sendTemplateTest(){alert('The template is ready for a test send, but ac
 
 async function duplicateCampaign(id){let x=campaigns.find(c=>c.id===id);if(!x)return;await api('email_campaigns',{method:'POST',body:JSON.stringify({name:x.name+' Copy',subject:x.subject,body_html:x.body_html,audience_type:x.audience_type,audience_month:x.audience_month,status:'draft'})});await load()}
 async function archiveCampaign(id){await api('email_campaigns?id=eq.'+id,{method:'PATCH',body:JSON.stringify({archived:true,updated_at:new Date().toISOString()})});await load()}
+
+function renderCampaigns(){
+  if(!document.getElementById('campaignList'))return;
+  campaignList.className='';
+  const active=campaigns.filter(x=>!x.archived);
+  campaignList.innerHTML=active.map(x=>`<div class="toggle">
+    <div>
+      <b>${esc(x.name)}</b>
+      <div class="muted">${esc(x.subject)} • ${esc(x.audience_type)}${x.scheduled_for?' • '+new Date(x.scheduled_for).toLocaleString():''}</div>
+    </div>
+    <div>
+      <span class="tag">${esc(x.status)}</span>
+      <button class="btn" onclick="duplicateCampaign(${x.id})">Duplicate</button>
+      <button class="btn danger" onclick="archiveCampaign(${x.id})">Archive</button>
+    </div>
+  </div>`).join('')||'<div class="empty">No active campaigns yet.</div>';
+}
 async function saveCampaign(){
   if(!cName.value||!cSubject.value||!cBody.value)return alert('Add a campaign name, subject and message.');
   const scheduled=cSendMode.value==='schedule'&&cSchedule.value?new Date(cSchedule.value).toISOString():null;
