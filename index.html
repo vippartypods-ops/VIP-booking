@@ -181,7 +181,7 @@ async function pay(){
     if(!r.ok||await r.json()!==true)throw new Error('Booking reservation was rejected');
     localStorage.setItem('vip_pending_booking_ref',ref);localStorage.setItem('vip_pending_booking_pkg',pkg);localStorage.setItem('vip_pending_booking_price',price);
     const link=STRIPE[pkg+'|'+duration];if(!link)throw new Error('Payment link not configured');
-    const u=new URL(link);u.searchParams.set('client_reference_id',ref);u.searchParams.set('locked_prefilled_email',email.value.trim());if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');location.href=u.toString();
+    const u=new URL(link);u.searchParams.set('client_reference_id',ref);u.searchParams.set('locked_prefilled_email',email.value.trim());if(discount)u.searchParams.set('prefilled_promo_code','VIPBDAY50');top.location.href=u.toString();
   }catch(e){
     try{await fetch(SUPA_URL+'/rest/v1/rpc/release_checkout_hold',{method:'POST',headers:H,body:JSON.stringify({p_ref:ref})})}catch(_e){}
     alert('We could not reserve the date right now. Please try again or contact VIP Party Pods.');paybtn.disabled=false;paybtn.textContent='🔒 Continue to Secure Payment';
