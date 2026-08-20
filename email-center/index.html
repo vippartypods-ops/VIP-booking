@@ -28,7 +28,7 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
 <div class="panel"><h2>Marketing Opportunities</h2><div id="dashOpportunities"></div><button class="btn" onclick="go('opportunities')">View All Opportunities</button></div>
 <div class="panel"><h2>Engagement Snapshot</h2><div id="dashEngagement"></div></div>
 </div>
-<div class="panel"><h2>System Status</h2><div class="note">Birthday Club data is read from the existing Birthday Club table and copied into this separate Email Center subscriber list. This page does not change your booking, Stripe, Vault, or Birthday Club code.</div></div></section>
+<div class="panel"><h2>Birthday Club Welcome Automation</h2><div class="note">A dedicated “Birthday Club Welcome” automation is now available. It is SEND ONCE per subscriber and remains OFF until the real email provider is connected and you approve the final preview/test.</div></div><div class="panel"><h2>System Status</h2><div class="note">Birthday Club data is read from the existing Birthday Club table and copied into this separate Email Center subscriber list. This page does not change your booking, Stripe, Vault, or Birthday Club code.</div></div></section>
 
 
 <section id="opportunities" class="view">
@@ -129,7 +129,43 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
 </div>
 <div class="panel"><h2>Campaign Performance</h2><div class="note" style="margin-bottom:12px">Delivery, bounce, open and click statistics will populate from the email provider after it is connected.</div><div class="tablewrap"><table><thead><tr><th>Campaign</th><th>Sent</th><th>Delivered</th><th>Bounced</th><th>Opened</th><th>Clicked</th><th>Unsubscribed</th><th>Booking Clicks</th><th>Conversions</th></tr></thead><tbody id="analyticsRows"></tbody></table></div></div>
 </section>
-<section id="templates" class="view"><div class="grid2"><div class="panel"><h2>Email Templates</h2><div id="templateList"></div></div><div class="panel"><h2>Edit Template</h2><input id="tId" type="hidden"><label>Name</label><input id="tName" class="input"><br><br><label>Subject</label><input id="tSubject" class="input"><br><br><label>Message</label><textarea id="tBody" class="input"></textarea><br><button class="btn primary" onclick="saveTemplate()">Save Template</button></div></div></section>
+
+<section id="templates" class="view">
+<div class="grid2">
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">Email Templates</h2>
+      <button class="btn primary" onclick="newTemplate()">+ Create Template</button>
+    </div>
+    <div class="note" style="margin-bottom:12px">Templates can be used by Campaigns or Automations. Your permanent logo/header/footer are added automatically when Brand Wrapper is ON.</div>
+    <div id="templateList"></div>
+  </div>
+  <div class="panel">
+    <h2 id="templateEditorTitle">Create / Edit Template</h2>
+    <input id="tId" type="hidden">
+    <label>Template Name</label><input id="tName" class="input" placeholder="My VIP Announcement"><br><br>
+    <label>Subject Line</label><input id="tSubject" class="input" placeholder="Hi {{name}}, something VIP is coming!"><br><br>
+    <div class="grid2">
+      <div><label>Status</label><select id="tStatus" class="input"><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></select></div>
+      <div><label>Brand Wrapper</label><select id="tBrand" class="input"><option value="true">ON — Logo/Header/Footer</option><option value="false">OFF — Message Only</option></select></div>
+    </div><br>
+    <label>Message</label>
+    <div class="toolbar" style="margin:7px 0">
+      <button class="btn" onclick="insertToken('{{name}}')">+ Customer Name</button>
+      <button class="btn" onclick="insertToken('{{birthday_month}}')">+ Birthday Month</button>
+      <button class="btn" onclick="insertToken('{{discount_status}}')">+ Discount Status</button>
+      <button class="btn" onclick="insertToken('{{book_now_button}}')">+ Book Now Button</button>
+    </div>
+    <textarea id="tBody" class="input" placeholder="Hi {{name}},&#10;&#10;Write your message here..."></textarea>
+    <div class="note" style="margin-top:7px">Customer names are filled automatically from Birthday Club data. If no name exists, the greeting safely falls back to “there”.</div><br>
+    <div class="toolbar">
+      <button class="btn" onclick="previewTemplateEditor()">👁 Preview</button>
+      <button class="btn" onclick="sendTemplateTest()">🧪 Send Test</button>
+      <button class="btn primary" onclick="saveTemplate()">Save Template</button>
+    </div>
+  </div>
+</div>
+</section>
 
 <section id="history" class="view"><div class="panel"><h2>Email History</h2><div class="tablewrap"><table><thead><tr><th>Date</th><th>Customer</th><th>Email</th><th>Subject</th><th>Status</th></tr></thead><tbody id="historyRows"></tbody></table></div></div></section>
 
@@ -174,8 +210,9 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
 <div id="previewOverlay" class="preview-overlay">
   <div class="preview-box">
     <div class="preview-top">
-      <div><b>Email Preview</b><div class="sub">This shows how the email content will look to a customer.</div></div>
+      <div><b>Email Preview</b><div class="sub">Finished customer-facing email with personalization and permanent branding.</div></div>
       <div class="preview-actions">
+        <select id="previewCustomer" class="input" style="width:190px;min-width:190px" onchange="refreshCurrentPreview()"><option value="">Sample Customer</option></select>
         <button class="btn" onclick="setPreviewMode('desktop')">Desktop</button>
         <button class="btn" onclick="setPreviewMode('mobile')">Mobile</button>
         <button class="btn" onclick="closePreview()">Close</button>
@@ -201,7 +238,7 @@ async function api(path,opt={}){let r=await fetch(SB+'/rest/v1/'+path,{...opt,he
 function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===v));document.getElementById(v).classList.add('active');document.getElementById('pageTitle').textContent=({dashboard:'Dashboard',subscribers:'Subscribers',campaigns:'Campaigns',groups:'Smart Groups',opportunities:'Opportunities',automations:'Automations',calendar:'Marketing Calendar',analytics:'Analytics',brand:'Brand Settings',templates:'Templates',history:'Email History',unsubscribed:'Unsubscribed'})[v];}
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>go(b.dataset.view));
 async function load(){try{[subscribers,templates,campaigns,automations,history,groups,settings,brand,activities]=await Promise.all([api('email_subscribers?select=*&order=created_at.desc'),api('email_templates?select=*&order=created_at.asc'),api('email_campaigns?select=*&order=created_at.desc'),api('email_automations?select=*&order=created_at.asc'),api('email_history?select=*&order=created_at.desc&limit=200'),api('email_groups?select=*&order=group_type.desc,name.asc'),api('email_settings?select=*'),api('email_brand_settings?select=*&limit=1'),api('email_contact_activity?select=*&order=created_at.desc&limit=500')]);renderAll()}catch(e){alert('Email Center could not load. '+e.message)}}
-function renderAll(){let active=subscribers.filter(x=>x.marketing_status==='subscribed');mSubs.textContent=active.length;mDiscount.textContent=active.filter(x=>!x.discount_redeemed).length;let nm=new Date().getMonth()+2;if(nm===13)nm=1;mBirthdays.textContent=active.filter(x=>Number(x.birthday_month)===nm).length;mUnsubs.textContent=subscribers.filter(x=>x.marketing_status==='unsubscribed').length;renderSubscribers();renderTemplates();renderCampaigns();renderAutomations();renderHistory();renderUnsubs();renderGroups();renderOpportunities();renderAnalytics();renderCalendar();renderBrand()}
+function renderAll(){let active=subscribers.filter(x=>x.marketing_status==='subscribed');mSubs.textContent=active.length;mDiscount.textContent=active.filter(x=>!x.discount_redeemed).length;let nm=new Date().getMonth()+2;if(nm===13)nm=1;mBirthdays.textContent=active.filter(x=>Number(x.birthday_month)===nm).length;mUnsubs.textContent=subscribers.filter(x=>x.marketing_status==='unsubscribed').length;renderSubscribers();renderTemplates();renderCampaigns();renderAutomations();renderHistory();renderUnsubs();renderGroups();renderOpportunities();renderAnalytics();renderCalendar();renderBrand();renderPreviewCustomers()}
 
 function smartCount(key){
  const active=subscribers.filter(x=>x.marketing_status==='subscribed');
@@ -319,7 +356,7 @@ function exportSubscribers(){
 }
 function openContact(id){
  let x=subscribers.find(s=>s.id===id);if(!x)return;let a=activities.filter(z=>z.subscriber_id===id).slice(0,50);
- contactProfile.innerHTML=`<div class="grid2"><div class="panel"><h2>${esc(x.name||'Subscriber')}</h2><div class="toggle"><span>Email</span><b>${esc(x.email)}</b></div><div class="toggle"><span>Source</span><b>${esc(x.source||'—')}</b></div><div class="toggle"><span>Birthday</span><b>${months[x.birthday_month]||'—'}</b></div><div class="toggle"><span>Interest</span><b>${esc(x.attraction_interest||'—')}</b></div><div class="toggle"><span>$50</span><b>${x.discount_redeemed?'Redeemed':'Available'}</b></div><div class="toggle"><span>Bookings</span><b>${Number(x.completed_bookings||0)}</b></div><div class="toggle"><span>Engagement</span><b>${Number(x.engagement_score||0)}</b></div><div class="toggle"><span>Marketing</span><b>${esc(x.marketing_status)}</b></div></div><div class="panel"><h2>Timeline</h2>${a.map(z=>`<div class="toggle"><div><b>${esc(z.activity_label||z.activity_type)}</b><div class="muted">${new Date(z.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="empty">No email activity yet.</div>'}</div></div>`;contactOverlay.classList.add('show');
+ contactProfile.innerHTML=`<div class="grid2"><div class="panel"><h2>${esc(x.name||'Subscriber')}</h2><div class="toggle"><span>Email</span><b>${esc(x.email)}</b></div><div class="toggle"><span>Source</span><b>${esc(x.source||'—')}</b></div><div class="toggle"><span>Birthday</span><b>${months[x.birthday_month]||'—'}</b></div><div class="toggle"><span>Interest</span><b>${esc(x.attraction_interest||'—')}</b></div><div class="toggle"><span>$50</span><b>${x.discount_redeemed?'Redeemed':'Available'}</b></div><div class="toggle"><span>Bookings</span><b>${Number(x.completed_bookings||0)}</b></div><div class="toggle"><span>Engagement</span><b>${Number(x.engagement_score||0)}</b></div><div class="toggle"><span>Marketing</span><b>${esc(x.marketing_status)}</b></div><div class="toggle"><span>Welcome Email</span><b>${x.welcome_email_sent?'Sent ✓':'Not sent yet'}</b></div></div><div class="panel"><h2>Timeline</h2>${a.map(z=>`<div class="toggle"><div><b>${esc(z.activity_label||z.activity_type)}</b><div class="muted">${new Date(z.created_at).toLocaleString()}</div></div></div>`).join('')||'<div class="empty">No email activity yet.</div>'}</div></div>`;contactOverlay.classList.add('show');
 }
 function closeContact(){contactOverlay.classList.remove('show')}
 function renderBrand(){
@@ -382,12 +419,40 @@ async function saveBrand(){
  else await api('email_brand_settings',{method:'POST',body:JSON.stringify(payload)});
  await load();alert('VIP Party Pods brand settings saved.');
 }
-function renderTemplates(){templateList.innerHTML=templates.map(x=>`<div class="toggle"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.subject)}</div></div><button class="btn" onclick="editTemplate(${x.id})">Edit</button></div>`).join('')}
-function editTemplate(id){let x=templates.find(t=>t.id===id);if(!x)return;tId.value=x.id;tName.value=x.name;tSubject.value=x.subject;tBody.value=x.body_html}
-async function saveTemplate(){if(!tId.value)return alert('Choose a template first.');await api('email_templates?id=eq.'+tId.value,{method:'PATCH',body:JSON.stringify({name:tName.value,subject:tSubject.value,body_html:tBody.value,updated_at:new Date().toISOString()})});await load();alert('Template saved.')}
-function renderCampaigns(){
- campaignList.className='';campaignList.innerHTML=campaigns.filter(x=>!x.archived).map(x=>`<div class="toggle"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.subject)} • ${esc(x.audience_type)}${x.scheduled_for?' • '+new Date(x.scheduled_for).toLocaleString():''}</div></div><div><span class="tag">${esc(x.status)}</span> <button class="btn" onclick="duplicateCampaign(${x.id})">Duplicate</button> <button class="btn danger" onclick="archiveCampaign(${x.id})">Archive</button></div></div>`).join('')||'<div class="empty">No active campaigns yet.</div>';
+
+function renderTemplates(){
+ templateList.innerHTML=templates.map(x=>`<div class="card" style="margin-bottom:10px">
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+    <div><b>${esc(x.name)}</b><div class="muted" style="margin-top:4px">${esc(x.subject)}</div><div style="margin-top:6px"><span class="tag">${esc(x.status||'draft')}</span> <span class="tag">${x.use_brand_wrapper===false?'No wrapper':'Branded'}</span></div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" onclick="editTemplate(${x.id})">Edit</button><button class="btn" onclick="previewTemplateById(${x.id})">Preview</button><button class="btn" onclick="duplicateTemplate(${x.id})">Duplicate</button>${x.template_type==='custom'?`<button class="btn danger" onclick="archiveTemplate(${x.id})">Archive</button>`:''}</div>
+   </div></div>`).join('')||'<div class="empty">No templates yet.</div>';
 }
+function newTemplate(){
+ tId.value='';tName.value='';tSubject.value='';tBody.value='';tStatus.value='draft';tBrand.value='true';templateEditorTitle.textContent='Create Custom Template';tName.focus();
+}
+function editTemplate(id){
+ let x=templates.find(t=>t.id===id);if(!x)return;
+ tId.value=x.id;tName.value=x.name;tSubject.value=x.subject;tBody.value=x.body_html;tStatus.value=x.status||'draft';tBrand.value=String(x.use_brand_wrapper!==false);templateEditorTitle.textContent='Edit Template';
+}
+function insertToken(token){
+ let el=tBody,start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;
+ el.value=el.value.slice(0,start)+token+el.value.slice(end);el.focus();el.selectionStart=el.selectionEnd=start+token.length;
+}
+async function saveTemplate(){
+ if(!tName.value.trim()||!tSubject.value.trim()||!tBody.value.trim())return alert('Add a template name, subject and message.');
+ const payload={name:tName.value.trim(),subject:tSubject.value.trim(),body_html:tBody.value,template_type:tId.value?(templates.find(x=>x.id==tId.value)?.template_type||'custom'):'custom',status:tStatus.value,is_active:tStatus.value==='active',use_brand_wrapper:tBrand.value==='true',updated_at:new Date().toISOString()};
+ if(tId.value)await api('email_templates?id=eq.'+tId.value,{method:'PATCH',body:JSON.stringify(payload)});
+ else await api('email_templates',{method:'POST',body:JSON.stringify(payload)});
+ await load();alert('Template saved.');
+}
+async function duplicateTemplate(id){
+ let x=templates.find(t=>t.id===id);if(!x)return;
+ await api('email_templates',{method:'POST',body:JSON.stringify({name:x.name+' Copy',subject:x.subject,body_html:x.body_html,template_type:'custom',status:'draft',is_active:false,use_brand_wrapper:x.use_brand_wrapper!==false})});
+ await load();
+}
+async function archiveTemplate(id){await api('email_templates?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'archived',is_active:false,updated_at:new Date().toISOString()})});await load()}
+function sendTemplateTest(){alert('The template is ready for a test send, but actual delivery stays disabled until the email provider is connected. Once connected, this sends only to your chosen test address.')}
+
 async function duplicateCampaign(id){let x=campaigns.find(c=>c.id===id);if(!x)return;await api('email_campaigns',{method:'POST',body:JSON.stringify({name:x.name+' Copy',subject:x.subject,body_html:x.body_html,audience_type:x.audience_type,audience_month:x.audience_month,status:'draft'})});await load()}
 async function archiveCampaign(id){await api('email_campaigns?id=eq.'+id,{method:'PATCH',body:JSON.stringify({archived:true,updated_at:new Date().toISOString()})});await load()}
 async function saveCampaign(){
@@ -402,15 +467,23 @@ async function saveCampaign(){
   cName.value=cSubject.value=cBody.value='';cSchedule.value='';cSendMode.value='draft';cScheduleWrap.style.display='none';
   await load();alert(status==='scheduled'?'Campaign scheduled. It will become send-ready once the email provider is connected.':'Campaign saved as a draft.');
 }
+
 function renderAutomations(){
 automationList.innerHTML=automations.map(x=>{
   const birthday=x.automation_type==='birthday_booking';
+  const welcome=x.automation_type==='birthday_welcome';
   const recurring=x.automation_type==='subscriber_check_in'||x.automation_type==='discount_reminder';
-  const audience=x.automation_type==='birthday_booking'?'Birthday Club members only':
-                 x.automation_type==='discount_reminder'?'Subscribed members with unused $50':'All subscribed customers';
+  const audience=welcome?'New Birthday Club members':
+                 birthday?'Birthday Club members based on birthday month':
+                 x.automation_type==='discount_reminder'?'Subscribed members with unused $50':
+                 'All subscribed customers';
+  const temp=templates.find(t=>t.id===x.template_id);
+  const timing=welcome?'Immediately after a new Birthday Club signup':
+               birthday?`${Math.round(Number(x.days_before||90)/30)} month(s) before birthday month`:
+               recurring?`Every ${Number(x.repeat_days||90)} days`:'Rule based';
   return `<div class="card" style="margin-bottom:12px">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-      <div><b style="font-size:15px">${esc(x.name)}</b><div class="muted" style="margin-top:4px">${audience}</div></div>
+      <div><b style="font-size:15px">${esc(x.name)}</b><div class="muted" style="margin-top:4px">${esc(audience)}</div><div style="margin-top:7px"><span class="tag">${esc(timing)}</span>${x.send_once?` <span class="tag">Send once</span>`:''}</div></div>
       <button class="btn ${x.enabled?'primary':''}" onclick="toggleAutomation(${x.id},${!x.enabled})">${x.enabled?'ON ✓':'OFF'}</button>
     </div>
     <div class="grid2" style="margin-top:14px">
@@ -421,31 +494,64 @@ automationList.innerHTML=automations.map(x=>{
         <option value="120" ${x.days_before==120?'selected':''}>4 months before</option>
       </select></div>`:''}
       ${recurring?`<div><label>Repeat frequency</label><select class="input" onchange="updateAutomation(${x.id},'repeat_days',this.value)">
-        <option value="30" ${x.repeat_days==30?'selected':''}>Every 30 days</option>
-        <option value="60" ${x.repeat_days==60?'selected':''}>Every 60 days</option>
-        <option value="90" ${x.repeat_days==90?'selected':''}>Every 90 days</option>
-        <option value="120" ${x.repeat_days==120?'selected':''}>Every 120 days</option>
-        <option value="180" ${x.repeat_days==180?'selected':''}>Every 6 months</option>
+        <option value="30" ${x.repeat_days==30?'selected':''}>Every 30 days</option><option value="60" ${x.repeat_days==60?'selected':''}>Every 60 days</option><option value="90" ${x.repeat_days==90?'selected':''}>Every 90 days</option><option value="120" ${x.repeat_days==120?'selected':''}>Every 120 days</option><option value="180" ${x.repeat_days==180?'selected':''}>Every 6 months</option>
       </select></div>`:''}
       <div><label>Email Template</label><select class="input" onchange="updateAutomation(${x.id},'template_id',this.value)">
-        ${templates.map(t=>`<option value="${t.id}" ${x.template_id==t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+        <option value="">Choose template</option>${templates.filter(t=>(t.status||'draft')!=='archived').map(t=>`<option value="${t.id}" ${x.template_id==t.id?'selected':''}>${esc(t.name)}${t.status==='active'?' ✓':''}</option>`).join('')}
       </select></div>
+    </div>
+    <div class="panel" style="margin:12px 0 0;padding:12px">
+      <div class="label">THIS AUTOMATION WILL SEND</div>
+      <div style="font-weight:800;margin-top:5px">${temp?esc(temp.name):'No template selected'}</div>
+      <div class="muted">${temp?esc(temp.subject):'Choose a template before activating.'}</div>
+      <div class="toolbar" style="margin-top:10px"><button class="btn" onclick="previewAutomation(${x.id})">👁 Preview This Automation Email</button>${temp?`<button class="btn" onclick="editTemplateAndGo(${temp.id})">✎ Edit Email</button>`:''}</div>
     </div>
   </div>`;
 }).join('')||'<div class="empty">Automation rules will appear here.</div>';
 }
+function editTemplateAndGo(id){go('templates');editTemplate(id);window.scrollTo(0,0)}
 
-function openPreview(){
- const b=brand[0]||{},savedLogo=localStorage.getItem('vip_email_brand_logo')||'',logo=savedLogo||b.logo_url||'';
- previewSubject.textContent=cSubject.value||'(No subject yet)';
- let body=cBody.value||'<p style="color:#777">Your email message will appear here.</p>';
- if(!/[<>]/.test(body)) body=esc(body).replace(/\n/g,'<br>');
- const header=logo?`<div style="background:#050505;text-align:center;padding:18px"><img src="${logo}" style="max-height:105px;max-width:260px"></div>`:`<div style="background:#050505;color:white;text-align:center;padding:20px;font-size:24px;font-weight:900">VIP Party Pods</div>`;
- const btn=`<div style="text-align:center;margin:24px 0"><a href="${esc(b.button_url||'https://www.vippartypods.com')}" style="display:inline-block;padding:12px 22px;background:${b.secondary_color||'#ec4899'};color:white;border-radius:8px;text-decoration:none;font-weight:900">${esc(b.button_text||'BOOK NOW')}</a></div>`;
- previewBody.innerHTML=header+`<div style="padding:4px 0">${body.replaceAll('{{name}}','Customer')}</div>`+btn;
- const socials=b.social_links||{facebook:'@VIP PARTY PODS',tiktok:'@VIP PARTY PODS',instagram:'@VIP PARTY PODS'};
- document.querySelector('.mailfoot').innerHTML=`<b>VIP Party Pods</b><br>423-255-8034 • www.vippartypods.com • vippartypods@gmail.com<br>Facebook ${esc(socials.facebook||'@VIP PARTY PODS')} • TikTok ${esc(socials.tiktok||'@VIP PARTY PODS')} • Instagram ${esc(socials.instagram||'@VIP PARTY PODS')}<br><br>${esc(b.unsubscribe_text||'You are receiving this because you subscribed to VIP Party Pods updates. You can unsubscribe at any time.')}<br><u>Unsubscribe</u>`;
+
+let currentPreviewMode={type:'campaign',id:null};
+function renderPreviewCustomers(){
+ if(!document.getElementById('previewCustomer'))return;
+ const selected=previewCustomer.value;
+ previewCustomer.innerHTML='<option value="">Sample Customer</option>'+subscribers.filter(x=>x.marketing_status==='subscribed').slice(0,100).map(x=>`<option value="${x.id}" ${String(x.id)===selected?'selected':''}>${esc(x.name||x.email)}</option>`).join('');
+}
+function previewPerson(){
+ let x=subscribers.find(s=>String(s.id)===String(previewCustomer.value));
+ return x||{name:'Sarah Customer',first_name:'Sarah',birthday_month:10,discount_redeemed:false,email:'customer@example.com'};
+}
+function personalize(content,person){
+ let first=(person.first_name||String(person.name||'').trim().split(/\s+/)[0]||'there').trim()||'there';
+ let discount=person.discount_redeemed?'Already redeemed':'$50 available';
+ let b=brand[0]||{},btn=`<div style="text-align:center;margin:24px 0"><a href="${esc(b.button_url||'https://www.vippartypods.com')}" style="display:inline-block;padding:12px 22px;background:${b.secondary_color||'#ec4899'};color:#fff;border-radius:8px;text-decoration:none;font-weight:900">${esc(b.button_text||'BOOK NOW')}</a></div>`;
+ return String(content||'').replaceAll('{{name}}',first).replaceAll('{{birthday_month}}',months[Number(person.birthday_month)]||'your birthday month').replaceAll('{{discount_status}}',discount).replaceAll('{{book_now_link}}',b.button_url||'https://www.vippartypods.com').replaceAll('{{book_now_button}}',btn);
+}
+function buildFinishedEmail(subject,body,useWrapper=true){
+ const b=brand[0]||{},p=previewPerson(),savedLogo=localStorage.getItem('vip_email_brand_logo')||'',logo=savedLogo||b.logo_url||'';
+ let personalizedBody=personalize(body,p);
+ if(!/[<>]/.test(personalizedBody))personalizedBody=esc(personalizedBody).replace(/\n/g,'<br>');
+ previewSubject.textContent=personalize(subject,p)||'(No subject yet)';
+ if(useWrapper){
+   const header=logo?`<div style="background:#050505;text-align:center;padding:18px"><img src="${logo}" style="max-height:105px;max-width:260px"></div>`:`<div style="background:#050505;color:#fff;text-align:center;padding:20px;font-size:24px;font-weight:900">VIP Party Pods</div>`;
+   previewBody.innerHTML=header+`<div style="padding:4px 0">${personalizedBody}</div>`;
+   const socials=b.social_links||{facebook:'@VIP PARTY PODS',tiktok:'@VIP PARTY PODS',instagram:'@VIP PARTY PODS'};
+   document.querySelector('.mailfoot').innerHTML=`<b>VIP Party Pods</b><br>${esc(b.phone||'423-255-8034')} • ${esc((b.website_url||'https://www.vippartypods.com').replace('https://',''))} • ${esc(b.reply_to_email||'vippartypods@gmail.com')}<br>Facebook ${esc(socials.facebook||'@VIP PARTY PODS')} • TikTok ${esc(socials.tiktok||'@VIP PARTY PODS')} • Instagram ${esc(socials.instagram||'@VIP PARTY PODS')}<br><br>${esc(b.unsubscribe_text||'You are receiving this because you subscribed to VIP Party Pods updates. You can unsubscribe at any time.')}<br><u>Unsubscribe</u>`;
+ }else{
+   previewBody.innerHTML=personalizedBody;document.querySelector('.mailfoot').innerHTML='<u>Unsubscribe</u>';
+ }
  previewOverlay.classList.add('show');
+}
+function openPreview(){currentPreviewMode={type:'campaign',id:null};buildFinishedEmail(cSubject.value,cBody.value,true)}
+function previewTemplateEditor(){currentPreviewMode={type:'editor',id:null};buildFinishedEmail(tSubject.value,tBody.value,tBrand.value==='true')}
+function previewTemplateById(id){let x=templates.find(t=>t.id===id);if(!x)return;currentPreviewMode={type:'template',id};buildFinishedEmail(x.subject,x.body_html,x.use_brand_wrapper!==false)}
+function previewAutomation(id){let a=automations.find(x=>x.id===id);if(!a)return;let t=templates.find(x=>x.id===a.template_id);if(!t)return alert('Choose an email template for this automation first.');currentPreviewMode={type:'automation',id};buildFinishedEmail(t.subject,t.body_html,t.use_brand_wrapper!==false)}
+function refreshCurrentPreview(){
+ if(currentPreviewMode.type==='campaign')openPreview();
+ else if(currentPreviewMode.type==='editor')previewTemplateEditor();
+ else if(currentPreviewMode.type==='template')previewTemplateById(currentPreviewMode.id);
+ else if(currentPreviewMode.type==='automation')previewAutomation(currentPreviewMode.id);
 }
 function closePreview(){previewOverlay.classList.remove('show')}
 function setPreviewMode(mode){mailFrame.className='mailframe '+mode}
@@ -454,13 +560,13 @@ function sendTest(){
 }
 async function updateAutomation(id,field,value){
   const payload={updated_at:new Date().toISOString()};
-  payload[field]=(field==='days_before'||field==='repeat_days'||field==='template_id')?Number(value):value;
+  payload[field]=(field==='days_before'||field==='repeat_days'||field==='template_id'||field==='minimum_gap_days')?Number(value):value;
   await api('email_automations?id=eq.'+id,{method:'PATCH',body:JSON.stringify(payload)});
   await load();
 }
 async function toggleAutomation(id,v){await api('email_automations?id=eq.'+id,{method:'PATCH',body:JSON.stringify({enabled:v,updated_at:new Date().toISOString()})});await load()}
 function renderHistory(){historyRows.innerHTML=history.map(x=>`<tr><td>${new Date(x.created_at).toLocaleString()}</td><td>${esc((subscribers.find(s=>s.id===x.subscriber_id)||{}).name||'—')}</td><td>${esc(x.email)}</td><td>${esc(x.subject||'')}</td><td>${esc(x.delivery_status)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">No emails sent yet.</td></tr>'}
 function renderUnsubs(){let a=subscribers.filter(x=>x.marketing_status==='unsubscribed'||x.email_bounced);unsubRows.innerHTML=a.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.email)}</td><td>${x.email_bounced?'Bounced: '+esc(x.bounce_reason||''):(x.unsubscribed_at?new Date(x.unsubscribed_at).toLocaleString():'Unsubscribed')}</td><td>${x.email_bounced?'<span class="tag">Provider suppression</span>':`<button class="btn" onclick="setStatus(${x.id},'subscribed')">Resubscribe</button>`}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">No suppressed contacts.</td></tr>'}
-async function syncBirthday(){try{let b=await api('birthday_club_members?select=id,parent_name,email,birthday_month,discount_redeemed,consent,attraction_interest&email=not.is.null');for(let x of b){if(!x.email)continue;let body={source:'birthday_club',source_member_id:x.id,name:x.parent_name,email:x.email.trim().toLowerCase(),birthday_month:x.birthday_month,discount_redeemed:!!x.discount_redeemed,attraction_interest:x.attraction_interest||null,updated_at:new Date().toISOString()};let existing=subscribers.find(s=>s.email.toLowerCase()===body.email);if(existing){delete body.email;await api('email_subscribers?id=eq.'+existing.id,{method:'PATCH',body:JSON.stringify(body)})}else if(x.consent){await api('email_subscribers',{method:'POST',body:JSON.stringify({...body,marketing_status:'subscribed'})})}}await load();alert('Birthday Club synced successfully.')}catch(e){alert('Sync failed: '+e.message)}}
+async function syncBirthday(){try{let b=await api('birthday_club_members?select=id,parent_name,email,birthday_month,discount_redeemed,consent,attraction_interest&email=not.is.null');for(let x of b){if(!x.email)continue;let body={source:'birthday_club',source_member_id:x.id,name:x.parent_name,first_name:(String(x.parent_name||'').trim().split(/\s+/)[0]||null),email:x.email.trim().toLowerCase(),birthday_month:x.birthday_month,discount_redeemed:!!x.discount_redeemed,attraction_interest:x.attraction_interest||null,updated_at:new Date().toISOString()};let existing=subscribers.find(s=>s.email.toLowerCase()===body.email);if(existing){delete body.email;await api('email_subscribers?id=eq.'+existing.id,{method:'PATCH',body:JSON.stringify(body)})}else if(x.consent){await api('email_subscribers',{method:'POST',body:JSON.stringify({...body,marketing_status:'subscribed'})})}}await load();alert('Birthday Club synced successfully.')}catch(e){alert('Sync failed: '+e.message)}}
 load();setTimeout(restoreDraftLocal,700);
 </script></body></html>
