@@ -443,10 +443,51 @@ async function saveBrand(){
 function renderTemplates(){
  templateList.innerHTML=templates.map(x=>`<div class="card" style="margin-bottom:10px">
    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-    <div><b>${esc(x.name)}</b><div class="muted" style="margin-top:4px">${esc(x.subject)}</div><div style="margin-top:6px"><span class="tag">${esc(x.status||'draft')}</span> <span class="tag">${x.use_brand_wrapper===false?'No wrapper':'Branded'}</span></div></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn" onclick="editTemplate(${x.id})">Edit</button><button class="btn" onclick="previewTemplateById(${x.id})">Preview</button><button class="btn" onclick="duplicateTemplate(${x.id})">Duplicate</button>${x.template_type==='custom'?`<button class="btn danger" onclick="archiveTemplate(${x.id})">Archive</button>`:''}</div>
-   </div></div>`).join('')||'<div class="empty">No templates yet.</div>';
+    <div>
+      <b>${esc(x.name)}</b>
+      <div class="muted" style="margin-top:4px">${esc(x.subject)}</div>
+      <div style="margin-top:6px">
+        <span class="tag">${esc(x.status||'draft')}</span>
+        <span class="tag">${x.use_brand_wrapper===false?'No wrapper':'Branded'}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn" onclick="editTemplate(${x.id})">Edit</button>
+      <button class="btn" onclick="previewTemplateById(${x.id})">Preview</button>
+      <button class="btn primary" onclick="sendSavedTemplateTest(${x.id})">🧪 Send Test</button>
+      <button class="btn" onclick="duplicateTemplate(${x.id})">Duplicate</button>
+      ${x.template_type==='custom'?`<button class="btn danger" onclick="archiveTemplate(${x.id})">Archive</button>`:''}
+    </div>
+   </div>
+  </div>`).join('')||'<div class="empty">No templates yet.</div>';
 }
+
+async function sendSavedTemplateTest(id){
+  const x=templates.find(t=>t.id===id);
+  if(!x)return alert('Template not found.');
+  const to=prompt('Send this saved template test to:',(brand[0]?.reply_to_email||'vippartypods@gmail.com'));
+  if(!to)return;
+  try{
+    currentPreviewMode={type:'template',id};
+    buildFinishedEmail(x.subject,x.body_html,x.use_brand_wrapper!==false);
+    const html=`<!doctype html><html><body style="margin:0;background:#f5f5f5"><div style="max-width:760px;margin:auto;background:white">${previewBody.innerHTML}${document.querySelector('.mailfoot').innerHTML}</div></body></html>`;
+    const r=await fetch(EMAIL_FN,{
+      method:'POST',
+      headers:{Authorization:'Bearer '+KEY,apikey:KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        to,
+        subject:personalize(x.subject,previewPerson()),
+        html
+      })
+    });
+    const data=await r.json();
+    if(!r.ok)throw new Error(data?.provider?.message||data?.error||'Send failed');
+    alert('✅ Saved template test sent to '+to);
+  }catch(e){
+    alert('Saved template test could not be sent: '+e.message);
+  }
+}
+
 function newTemplate(){
  tId.value='';tName.value='';tSubject.value='';tBody.value='';tStatus.value='draft';tBrand.value='true';templateEditorTitle.textContent='Create Custom Template';tName.focus();
 }
