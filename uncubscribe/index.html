@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VIP Party Pods Email Preferences</title>
+  <style>
+    body{margin:0;background:#08050c;color:#fff;font-family:Arial,sans-serif}
+    .wrap{max-width:620px;margin:60px auto;padding:22px}
+    .card{border:1px solid #6d28d9;border-radius:20px;overflow:hidden;background:#12091b;box-shadow:0 0 30px rgba(236,72,153,.16)}
+    .head{padding:30px 22px;text-align:center;background:linear-gradient(135deg,#12091b,#2d0f3f)}
+    .tiny{font-size:11px;font-weight:900;letter-spacing:4px;color:#22d3ee}
+    .brand{font-size:30px;font-weight:900;margin-top:8px;text-shadow:0 0 10px #ec4899}
+    .line{height:3px;max-width:250px;margin:14px auto 0;background:linear-gradient(90deg,#22d3ee,#8b5cf6,#ec4899,#84cc16);border-radius:99px}
+    .body{padding:34px;background:#fff;color:#17111b;text-align:center}
+    h1{margin:0 0 10px;font-size:28px}
+    p{line-height:1.7;margin:0 auto;max-width:470px}
+    a{display:inline-block;margin-top:22px;padding:13px 24px;border-radius:999px;background:linear-gradient(90deg,#7c3aed,#ec4899);color:#fff;text-decoration:none;font-weight:900}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="head">
+      <div class="tiny">VIP PARTY PODS</div>
+      <div class="brand">Email Preferences</div>
+      <div class="line"></div>
+    </div>
+    <div class="body">
+      <h1 id="title">You've been unsubscribed</h1>
+      <p id="message">You will no longer receive VIP Party Pods marketing emails. Your existing bookings and VIP Birthday Club information are not affected.</p>
+      <a href="https://www.vippartypods.com">Visit VIP Party Pods</a>
+    </div>
+  </div>
+</div>
+<script>
+const s=new URLSearchParams(location.search).get('status');
+if(s==='invalid'){
+  title.textContent='Unable to unsubscribe';
+  message.textContent='This unsubscribe link is invalid or incomplete. Please contact VIP Party Pods if you need help.';
+}else if(s==='notfound'){
+  title.textContent='Link no longer valid';
+  message.textContent='This unsubscribe link could not be matched to an active subscriber record.';
+}else if(s==='error'){
+  title.textContent='Something went wrong';
+  message.textContent='We could not update your email preferences right now. Please try again later.';
+}
+</script>
+</body>
+</html>
