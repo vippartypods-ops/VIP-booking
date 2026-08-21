@@ -28,7 +28,7 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
 <div class="panel"><h2>Marketing Opportunities</h2><div id="dashOpportunities"></div><button class="btn" onclick="go('opportunities')">View All Opportunities</button></div>
 <div class="panel"><h2>Engagement Snapshot</h2><div id="dashEngagement"></div></div>
 </div>
-<div class="panel"><h2>Birthday Club Welcome Automation</h2><div class="note">A dedicated “Birthday Club Welcome” automation is now available. It is SEND ONCE per subscriber and remains OFF until the real email provider is connected and you approve the final preview/test.</div></div><div class="panel"><h2>System Status</h2><div class="note">Birthday Club data is read from the existing Birthday Club table and copied into this separate Email Center subscriber list. This page does not change your booking, Stripe, Vault, or Birthday Club code.</div></div></section>
+<div class="panel"><h2>Live Email Sender</h2><div class="note">✅ Resend sending function connected. Use Send Test in Campaigns or Templates to send a real test email before activating automations.</div></div><div class="panel"><h2>Birthday Club Welcome Automation</h2><div class="note">A dedicated “Birthday Club Welcome” automation is now available. It is SEND ONCE per subscriber and remains OFF until the real email provider is connected and you approve the final preview/test.</div></div><div class="panel"><h2>System Status</h2><div class="note">Birthday Club data is read from the existing Birthday Club table and copied into this separate Email Center subscriber list. This page does not change your booking, Stripe, Vault, or Birthday Club code.</div></div></section>
 
 
 <section id="opportunities" class="view">
@@ -227,6 +227,7 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
 </div>
 <script>
 const SB='https://gsrwmzojojkacxpahudj.supabase.co';
+const EMAIL_FN=SB+'/functions/v1/send-marketing-email';
 const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzcndtem9qb2prYWN4cGFodWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0Njg2MzUsImV4cCI6MjA5NzA0NDYzNX0.VhMPVeDrrW525Y6FaP0CjJe0zrBnB7keV54w9CMrI40';
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Prefer:'return=representation'};
 let subscribers=[],templates=[],campaigns=[],automations=[],history=[],groups=[],settings=[],brand=[],activities=[];
@@ -451,26 +452,19 @@ async function duplicateTemplate(id){
  await load();
 }
 async function archiveTemplate(id){await api('email_templates?id=eq.'+id,{method:'PATCH',body:JSON.stringify({status:'archived',is_active:false,updated_at:new Date().toISOString()})});await load()}
-function sendTemplateTest(){alert('The template is ready for a test send, but actual delivery stays disabled until the email provider is connected. Once connected, this sends only to your chosen test address.')}
-
-async function duplicateCampaign(id){let x=campaigns.find(c=>c.id===id);if(!x)return;await api('email_campaigns',{method:'POST',body:JSON.stringify({name:x.name+' Copy',subject:x.subject,body_html:x.body_html,audience_type:x.audience_type,audience_month:x.audience_month,status:'draft'})});await load()}
-async function archiveCampaign(id){await api('email_campaigns?id=eq.'+id,{method:'PATCH',body:JSON.stringify({archived:true,updated_at:new Date().toISOString()})});await load()}
-
-function renderCampaigns(){
-  if(!document.getElementById('campaignList'))return;
-  campaignList.className='';
-  const active=campaigns.filter(x=>!x.archived);
-  campaignList.innerHTML=active.map(x=>`<div class="toggle">
-    <div>
-      <b>${esc(x.name)}</b>
-      <div class="muted">${esc(x.subject)} • ${esc(x.audience_type)}${x.scheduled_for?' • '+new Date(x.scheduled_for).toLocaleString():''}</div>
-    </div>
-    <div>
-      <span class="tag">${esc(x.status)}</span>
-      <button class="btn" onclick="duplicateCampaign(${x.id})">Duplicate</button>
-      <button class="btn danger" onclick="archiveCampaign(${x.id})">Archive</button>
-    </div>
-  </div>`).join('')||'<div class="empty">No active campaigns yet.</div>';
+async function sendTemplateTest(){
+  if(!tSubject.value.trim()||!tBody.value.trim())return alert('Add a template subject and message first.');
+  const to=prompt('Send this template test to:',(brand[0]?.reply_to_email||'vippartypods@gmail.com'));
+  if(!to)return;
+  try{
+    currentPreviewMode={type:'editor',id:null};
+    buildFinishedEmail(tSubject.value,tBody.value,tBrand.value==='true');
+    const html=`<!doctype html><html><body style="margin:0;background:#f5f5f5"><div style="max-width:760px;margin:auto;background:white">${previewBody.innerHTML}<div style="padding:18px;background:#f4f4f4;color:#666;font:12px Arial,sans-serif">${document.querySelector('.mailfoot').innerHTML}</div></div></body></html>`;
+    const r=await fetch(EMAIL_FN,{method:'POST',headers:{Authorization:'Bearer '+KEY,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({to,subject:personalize(tSubject.value,previewPerson()),html})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data?.provider?.message||data?.error||'Send failed');
+    alert('✅ Template test sent to '+to);
+  }catch(e){alert('Template test could not be sent: '+e.message);}
 }
 async function saveCampaign(){
   if(!cName.value||!cSubject.value||!cBody.value)return alert('Add a campaign name, subject and message.');
@@ -572,8 +566,19 @@ function refreshCurrentPreview(){
 }
 function closePreview(){previewOverlay.classList.remove('show')}
 function setPreviewMode(mode){mailFrame.className='mailframe '+mode}
-function sendTest(){
-  alert('The test-send button is ready in the workflow, but actual delivery is intentionally disabled until we connect your sending email/provider. Preview works now; once the provider is connected, this button will send only to your chosen test address.');
+async function sendTest(){
+  if(!cSubject.value.trim()||!cBody.value.trim())return alert('Add a subject and message first.');
+  const to=prompt('Send this test email to:',(brand[0]?.reply_to_email||'vippartypods@gmail.com'));
+  if(!to)return;
+  try{
+    currentPreviewMode={type:'campaign',id:null};
+    buildFinishedEmail(cSubject.value,cBody.value,true);
+    const html=`<!doctype html><html><body style="margin:0;background:#f5f5f5"><div style="max-width:760px;margin:auto;background:white">${previewBody.innerHTML}<div style="padding:18px;background:#f4f4f4;color:#666;font:12px Arial,sans-serif">${document.querySelector('.mailfoot').innerHTML}</div></div></body></html>`;
+    const r=await fetch(EMAIL_FN,{method:'POST',headers:{Authorization:'Bearer '+KEY,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({to,subject:personalize(cSubject.value,previewPerson()),html})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data?.provider?.message||data?.error||'Send failed');
+    alert('✅ Test email sent to '+to);
+  }catch(e){alert('Test email could not be sent: '+e.message);}
 }
 async function updateAutomation(id,field,value){
   const payload={updated_at:new Date().toISOString()};
