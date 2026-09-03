@@ -1,0 +1,56 @@
+name: Fix Vault Dashboard
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-vault-dashboard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-vault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch Vault functions into admin iframe
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          if 'VIP_VAULT_IFRAME_FIX_V1' in s:
+              print('Vault iframe fix already present')
+              raise SystemExit(0)
+
+          outer_start = s.find("let vaultCampaigns=[],vaultParticipants=[],selectedVaultCampaignId=null;", s.find("VIP_APP.openCustomer('book');})();"))
+          if outer_start < 0:
+              raise SystemExit('Could not find existing Vault function block')
+          outer_end_marker = "\n</script>\n</body></html>"
+          outer_end = s.find(outer_end_marker, outer_start)
+          if outer_end < 0:
+              raise SystemExit('Could not find end of existing Vault function block')
+          vault_js = s[outer_start:outer_end]
+
+          admin_end_marker = "\n</script>\n</body>\n</html>\n</template>"
+          admin_end = s.rfind(admin_end_marker, 0, s.find("VIP_APP.openCustomer('book');})();"))
+          if admin_end < 0:
+              raise SystemExit('Could not find admin template end')
+
+          inject = "\n/* VIP_VAULT_IFRAME_FIX_V1 */\n" + vault_js + "\n"
+          s = s[:admin_end] + inject + s[admin_end:]
+          p.write_text(s, encoding='utf-8')
+          print('Injected Vault admin functions into the Owner Dashboard iframe')
+
+      - name: Commit repair
+        run: |
+          if git diff --quiet -- index.html; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "VIP Party Pods Repair"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix Start New Vault Campaign button"
+          git push
