@@ -277,13 +277,23 @@ function renderMonthlyNewsletters(){
   const d=new Date(n.send_at), month=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
   const when=d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'America/New_York',timeZoneName:'short'});
   const status=n.sent_at?'SENT':(n.enabled?'SCHEDULED':'PAUSED');
-  return '<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:260px;flex:1"><div style="font-size:18px;font-weight:900">'+esc(month)+' VIP Scoop</div><div class="muted" style="margin-top:5px">'+esc(n.subject)+'</div><div style="margin-top:8px;font-size:12px">📅 '+esc(when)+' &nbsp; • &nbsp; <b>'+status+'</b></div></div><div class="toolbar"><button class="btn" onclick="previewMonthlyNewsletter('+n.id+')">👁 Preview</button></div></div></div>';
+  return '<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:260px;flex:1"><div style="font-size:18px;font-weight:900">'+esc(month)+' VIP Scoop</div><div class="muted" style="margin-top:5px">'+esc(n.subject)+'</div><div style="margin-top:8px;font-size:12px">📅 '+esc(when)+' &nbsp; • &nbsp; <b>'+status+'</b></div></div><div class="toolbar"><button class="btn" onclick="previewMonthlyNewsletter('+n.id+')">👁 Preview</button><button class="btn" onclick="editMonthlyNewsletter('+n.id+')">✏️ Edit</button><button class="btn" onclick="toggleMonthlyNewsletter('+n.id+')">'+(n.enabled?'⏸ Pause':'▶ Enable')+'</button></div></div></div>';
  }).join('');
 }
 function previewMonthlyNewsletter(id){
  const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
  const w=window.open('','_blank'); if(!w)return alert('Please allow pop-ups to preview this newsletter.');
  w.document.open();w.document.write(n.html||'<p>No newsletter content saved.</p>');w.document.close();
+}
+function editMonthlyNewsletter(id){
+ const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
+ const subject=prompt('Newsletter subject:',n.subject||''); if(subject===null)return;
+ const sendAt=prompt('Scheduled date/time (ISO format):',n.send_at||''); if(sendAt===null)return;
+ api('vip_monthly_scoop_schedule?id=eq.'+id,{method:'PATCH',body:JSON.stringify({subject:subject,send_at:sendAt,updated_at:new Date().toISOString()})}).then(loadMonthlyNewsletters).catch(e=>alert('Could not save newsletter. '+e.message));
+}
+function toggleMonthlyNewsletter(id){
+ const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
+ api('vip_monthly_scoop_schedule?id=eq.'+id,{method:'PATCH',body:JSON.stringify({enabled:!n.enabled,updated_at:new Date().toISOString()})}).then(loadMonthlyNewsletters).catch(e=>alert('Could not update newsletter. '+e.message));
 }
 function renderAll(){let active=subscribers.filter(x=>x.marketing_status==='subscribed');mSubs.textContent=active.length;mDiscount.textContent=active.filter(x=>!x.discount_redeemed).length;let nm=new Date().getMonth()+2;if(nm===13)nm=1;mBirthdays.textContent=active.filter(x=>Number(x.birthday_month)===nm).length;mUnsubs.textContent=subscribers.filter(x=>x.marketing_status==='unsubscribed').length;renderSubscribers();renderTemplates();renderCampaigns();renderAutomations();renderHistory();renderUnsubs();renderGroups();renderOpportunities();renderAnalytics();renderCalendar();renderBrand();renderPreviewCustomers()}
 
