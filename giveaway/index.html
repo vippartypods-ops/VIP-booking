@@ -22,9 +22,26 @@ const U='https://gsrwmzojojkacxpahudj.supabase.co',K='eyJhbGciOiJIUzI1NiIsInR5cC
 async function rpc(fn,b={}){const r=await fetch(U+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json'},body:JSON.stringify(b)});if(!r.ok)throw new Error(await r.text());return r.json()}
 function fmt(v){return v?new Date(v).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):''}
 let campaign=null;
-async function load(){try{campaign=await rpc('vip_giveaway_public_status');document.getElementById('loading').style.display='none';if(!campaign.has_campaign){showClosed('🎁','No giveaway currently open',"Sorry, there isn't a VIP Giveaway open right now. Please come back when our next giveaway opens! Like & follow VIP Party Pods on Facebook to stay up to date.");return}if(campaign.state!=='open'){const t=campaign.state==='scheduled'?'Coming Soon!':'This Giveaway Is Closed';const x=campaign.state==='scheduled'?('Our next VIP Giveaway opens '+fmt(campaign.opens_at)+'. Come back then to enter! Like & follow VIP Party Pods on Facebook so you don’t miss it.'):"This VIP Giveaway has ended. Please come back when our next giveaway opens! Like & follow VIP Party Pods on Facebook to stay up to date.";showClosed(campaign.icon||'🎁',t,x);return}
-document.getElementById('content').style.display='grid';icon.textContent=campaign.icon||'🎁';name.textContent=campaign.name;description.textContent=campaign.description||'Enter for your chance to win!';prize.textContent=campaign.prize_description||'';custom.textContent=campaign.custom_message||'';dates.textContent='Entries close '+fmt(campaign.closes_at)+(campaign.winner_announce_at?' • Winner announcement '+fmt(campaign.winner_announce_at):'');if(campaign.image_data){image.src=campaign.image_data;image.style.display='block'}}catch(e){document.getElementById('loading').style.display='none';showClosed('⚠️','Giveaway temporarily unavailable','Please check back shortly.')}}
-function showClosed(i,t,x){closed.style.display='block';closedIcon.textContent=i;closedTitle.textContent=t;closedText.textContent=x}
-form.addEventListener('submit',async e=>{e.preventDefault();const b=submit,m=msg;m.textContent='';b.disabled=true;b.textContent='ENTERING…';try{const x=await rpc('vip_giveaway_enter',{p_first_name:first.value.trim(),p_last_name:last.value.trim(),p_email:email.value.trim(),p_phone:phone.value.trim(),p_consent:consent.checked});if(!x.ok){m.style.color='#fb7185';m.textContent=x.message||'Unable to enter.';return}entryWrap.style.display='none';success.style.display='block'}catch(e){m.style.color='#fb7185';m.textContent='We could not save your entry right now. Please try again.'}finally{b.disabled=false;b.textContent='ENTER VIP GIVEAWAY'}});
+const el=id=>document.getElementById(id);
+async function load(){try{
+  campaign=await rpc('vip_giveaway_public_status');
+  el('loading').style.display='none';
+  if(!campaign || !campaign.has_campaign){showClosed('🎁','No giveaway currently open',"Sorry, there isn't a VIP Giveaway open right now. Please come back when our next giveaway opens! Like & follow VIP Party Pods on Facebook to stay up to date.");return}
+  if(campaign.state!=='open'){
+    const t=campaign.state==='scheduled'?'Coming Soon!':'This Giveaway Is Closed';
+    const x=campaign.state==='scheduled'?('Our next VIP Giveaway opens '+fmt(campaign.opens_at)+'. Come back then to enter! Like & follow VIP Party Pods on Facebook so you don’t miss it.'):"This VIP Giveaway has ended. Please come back when our next giveaway opens! Like & follow VIP Party Pods on Facebook to stay up to date.";
+    showClosed(campaign.icon||'🎁',t,x);return;
+  }
+  el('content').style.display='grid';
+  el('icon').textContent=campaign.icon||'🎁';
+  el('name').textContent=campaign.name;
+  el('description').textContent=campaign.description||'Enter for your chance to win!';
+  el('prize').textContent=campaign.prize_description||'';
+  el('custom').textContent=campaign.custom_message||'';
+  el('dates').textContent='Entries close '+fmt(campaign.closes_at)+(campaign.winner_announce_at?' • Winner announcement '+fmt(campaign.winner_announce_at):'');
+  if(campaign.image_data){el('image').src=campaign.image_data;el('image').style.display='block'}
+}catch(e){el('loading').style.display='none';showClosed('⚠️','Giveaway temporarily unavailable','Please check back shortly.')}}
+function showClosed(i,t,x){el('closed').style.display='block';el('closedIcon').textContent=i;el('closedTitle').textContent=t;el('closedText').textContent=x}
+el('form').addEventListener('submit',async e=>{e.preventDefault();const b=el('submit'),m=el('msg');m.textContent='';b.disabled=true;b.textContent='ENTERING…';try{const x=await rpc('vip_giveaway_enter',{p_first_name:el('first').value.trim(),p_last_name:el('last').value.trim(),p_email:el('email').value.trim(),p_phone:el('phone').value.trim(),p_consent:el('consent').checked});if(!x.ok){m.style.color='#fb7185';m.textContent=x.message||'Unable to enter.';return}el('entryWrap').style.display='none';el('success').style.display='block'}catch(e){m.style.color='#fb7185';m.textContent='We could not save your entry right now. Please try again.'}finally{b.disabled=false;b.textContent='ENTER VIP GIVEAWAY'}});
 load();
 </script></body></html>
