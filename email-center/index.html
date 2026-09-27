@@ -74,7 +74,9 @@ button,input,select,textarea{font:inherit}.shell{display:grid;grid-template-colu
     <div><h2 style="margin:0 0 5px">📰 VIP Scoop Monthly Newsletters</h2><div class="muted">Your saved monthly VIP Scoop emails, send dates, and status.</div></div>
     <button class="btn" onclick="loadMonthlyNewsletters()">↻ Refresh</button>
   </div>
+  <div id="monthlyNewsletterSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0"></div>
   <div id="monthlyNewsletterList" class="empty">Loading monthly newsletters…</div>
+  <div id="monthlyRecipientPanel" style="display:none;margin-top:16px"></div>
 </div>
 </section>
 <section id="campaigns" class="view">
@@ -273,6 +275,7 @@ async function loadMonthlyNewsletters(){
 }
 function renderMonthlyNewsletters(){
  const el=document.getElementById('monthlyNewsletterList'); if(!el)return;
+ renderMonthlyNewsletterSummary();
  if(!monthlyNewsletters.length){el.innerHTML='<div class="empty">No monthly newsletters saved yet.</div>';return;}
  el.innerHTML=monthlyNewsletters.map(n=>{
   const d=new Date(n.send_at), month=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
@@ -284,13 +287,51 @@ function renderMonthlyNewsletters(){
   const opened=rows.filter(h=>h.opened_at).length;
   const clicked=rows.filter(h=>h.clicked_at).length;
   const bounced=rows.filter(h=>h.delivery_status==='bounced'||h.delivery_status==='failed').length;
+  const notOpened=Math.max(0,sent-opened);
   const unsub=rows.filter(h=>h.unsubscribed_at).length;
   const openRate=sent?Math.round(opened/sent*100):0;
   const clickRate=sent?Math.round(clicked/sent*100):0;
   const stats='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:8px;margin-top:13px;max-width:760px">'+
-   [['Sent',sent],['Delivered',delivered],['Opened',opened],['Open Rate',openRate+'%'],['Clicked',clicked],['Click Rate',clickRate+'%'],['Bounced',bounced],['Unsubscribed',unsub]].map(x=>'<div style="background:#ffffff08;border:1px solid #ffffff12;border-radius:10px;padding:9px 10px"><div class="muted" style="font-size:11px">'+x[0]+'</div><div style="font-size:18px;font-weight:900;margin-top:2px">'+x[1]+'</div></div>').join('')+'</div>';
-  return '<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:260px;flex:1"><div style="font-size:18px;font-weight:900">'+esc(month)+' VIP Scoop</div><div class="muted" style="margin-top:5px">'+esc(n.subject)+'</div><div style="margin-top:8px;font-size:12px">📅 '+esc(when)+' &nbsp; • &nbsp; <b>'+status+'</b></div>'+stats+'</div><div class="toolbar"><button class="btn" onclick="previewMonthlyNewsletter('+n.id+')">👁 Preview</button><button class="btn" onclick="editMonthlyNewsletter('+n.id+')">✏️ Edit</button><button class="btn" onclick="toggleMonthlyNewsletter('+n.id+')">'+(n.enabled?'⏸ Pause':'▶ Enable')+'</button></div></div></div>';
+   [['Sent',sent],['Delivered',delivered],['Opened',opened],['Not Opened',notOpened],['Open Rate',openRate+'%'],['Clicked',clicked],['Click Rate',clickRate+'%'],['Bounced',bounced],['Unsubscribed',unsub]].map(x=>'<div style="background:#ffffff08;border:1px solid #ffffff12;border-radius:10px;padding:9px 10px"><div class="muted" style="font-size:11px">'+x[0]+'</div><div style="font-size:18px;font-weight:900;margin-top:2px">'+x[1]+'</div></div>').join('')+'</div>';
+  return '<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:260px;flex:1"><div style="font-size:18px;font-weight:900">'+esc(month)+' VIP Scoop</div><div class="muted" style="margin-top:5px">'+esc(n.subject)+'</div><div style="margin-top:8px;font-size:12px">📅 '+esc(when)+' &nbsp; • &nbsp; <b>'+status+'</b></div>'+stats+'</div><div class="toolbar"><button class="btn" onclick="previewMonthlyNewsletter('+n.id+')">👁 Preview</button><button class="btn" onclick="viewMonthlyRecipients('+n.id+')">👥 View Recipients</button><button class="btn" onclick="sendMonthlyTest('+n.id+')">🧪 Send Test</button><button class="btn" onclick="editMonthlyNewsletter('+n.id+')">✏️ Edit</button><button class="btn" onclick="toggleMonthlyNewsletter('+n.id+')">'+(n.enabled?'⏸ Pause':'▶ Enable')+'</button></div></div></div>';
  }).join('');
+}
+function renderMonthlyNewsletterSummary(){
+ const el=document.getElementById('monthlyNewsletterSummary'); if(!el)return;
+ const active=subscribers.filter(x=>x.marketing_status==='subscribed').length;
+ const sentNews=monthlyNewsletters.filter(n=>n.sent_at).sort((a,b)=>new Date(b.sent_at)-new Date(a.sent_at));
+ const last=sentNews[0];
+ let label='None yet',openRate='—',clickRate='—';
+ if(last){
+  label=new Date(last.send_at).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const rows=monthlyNewsletterHistory.filter(h=>h.event_type==='monthly_newsletter:'+last.newsletter_key);
+  const sent=rows.filter(h=>h.sent_at||h.delivery_status==='sent'||h.delivery_status==='delivered').length;
+  openRate=sent?Math.round(rows.filter(h=>h.opened_at).length/sent*100)+'%':'0%';
+  clickRate=sent?Math.round(rows.filter(h=>h.clicked_at).length/sent*100)+'%':'0%';
+ }
+ const data=[['Total Subscribers',subscribers.length],['Active Subscribers',active],['Last Newsletter',label],['Last Open Rate',openRate],['Last Click Rate',clickRate]];
+ el.innerHTML=data.map(x=>'<div class="card" style="padding:12px"><div class="muted" style="font-size:11px">'+x[0]+'</div><div style="font-size:20px;font-weight:900;margin-top:3px">'+esc(x[1])+'</div></div>').join('');
+}
+function viewMonthlyRecipients(id){
+ const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
+ const rows=monthlyNewsletterHistory.filter(h=>h.event_type==='monthly_newsletter:'+n.newsletter_key);
+ const panel=document.getElementById('monthlyRecipientPanel'); panel.style.display='block';
+ const subMap=new Map(subscribers.map(s=>[Number(s.id),s]));
+ const month=new Date(n.send_at).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+ const fmt=v=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
+ panel.innerHTML='<div class="panel"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><h2 style="margin:0">👥 '+esc(month)+' Recipients ('+rows.length+')</h2><button class="btn" onclick="document.getElementById(\'monthlyRecipientPanel\').style.display=\'none\'">Close</button></div>'+
+ (rows.length?'<div class="table-scroll" style="margin-top:12px"><table><thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Sent</th><th>Opened</th><th>Clicked</th><th>Unsubscribed</th></tr></thead><tbody>'+
+ rows.map(h=>{const s=subMap.get(Number(h.subscriber_id))||{};return '<tr><td>'+esc(s.name||s.first_name||'—')+'</td><td>'+esc(h.email||s.email||'—')+'</td><td>'+esc(h.delivery_status||'sent')+'</td><td>'+fmt(h.sent_at)+'</td><td>'+fmt(h.opened_at)+'</td><td>'+fmt(h.clicked_at)+'</td><td>'+fmt(h.unsubscribed_at)+'</td></tr>'}).join('')+'</tbody></table></div>':'<div class="empty" style="margin-top:12px">No recipients yet. This newsletter has not been sent.</div>')+'</div>';
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function sendMonthlyTest(id){
+ const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
+ const to=prompt('Send this monthly newsletter test to:',brand[0]?.reply_to_email||'vippartypods@gmail.com'); if(!to)return;
+ try{
+  const r=await fetch(EMAIL_FN,{method:'POST',headers:{Authorization:'Bearer '+KEY,apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify({to,subject:'TEST — '+n.subject,html:n.html})});
+  const data=await r.json(); if(!r.ok)throw new Error(data?.provider?.message||data?.error||'Send failed');
+  alert('✅ Monthly newsletter test sent to '+to);
+ }catch(e){alert('Monthly newsletter test could not be sent: '+e.message)}
 }
 function previewMonthlyNewsletter(id){
  const n=monthlyNewsletters.find(x=>Number(x.id)===Number(id)); if(!n)return;
