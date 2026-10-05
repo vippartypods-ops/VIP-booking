@@ -93,8 +93,8 @@ function showQuote(){booking.classList.add('hidden');portal.classList.add('hidde
 function renderSteps(){steps.innerHTML=[0,1,2,3,4].map(i=>`<div class="step ${i<=step?'on':''}"></div>`).join('')}
 function go(n){document.querySelectorAll('#booking section[id^=s]').forEach(x=>x.classList.add('hidden'));thanks.classList.add('hidden');document.getElementById('s'+n).classList.remove('hidden');step=n;renderSteps();if(n===2)renderCal();if(n===4)renderSummary();window.scrollTo(0,0)}
 function check0(){next0.disabled=!agree.checked}
-function renderPkgs(){pkgs.innerHTML=PACKAGES.map(p=>`<div class="pkg ${pkg===p.id?'selected':''}" onclick="choosePkg('${p.id}')"><div style="font-size:26px">${p.emoji}</div><div class="pkgname">${p.name}</div><div class="pkgsub">${p.subtitle}</div><div class="desc">${p.description}</div>${p.includes.map(x=>`<div class="inc">✓ ${x}</div>`).join('')}<div class="pills">${p.options.map(o=>`<button class="pill ${pkg===p.id&&duration===o[0]?'selected':''}" onclick="event.stopPropagation();chooseDur('${p.id}','${o[0]}')">${o[0]} · $${o[1]}</button>`).join('')}</div>${p.id==='battle-bash-pod'&&pkg===p.id?`<div class="pills"><button class="pill ${battle==='Nerf'?'selected':''}" onclick="event.stopPropagation();battle='Nerf';renderPkgs();check1()">🎯 Nerf</button><button class="pill ${battle==='Laser Tag'?'selected':''}" onclick="event.stopPropagation();battle='Laser Tag';renderPkgs();check1()">⚡ Laser Tag</button></div>`:''}</div>`).join('');check1()}
-function choosePkg(id){pkg=id;duration=null;battle=null;date=null;time=null;renderPkgs()} function chooseDur(id,d){pkg=id;duration=d;renderPkgs()} function check1(){next1.disabled=!(pkg&&duration&&(pkg!=='battle-bash-pod'||battle))}
+function renderPkgs(){pkgs.innerHTML=PACKAGES.map(p=>`<div class="pkg ${pkg===p.id?'selected':''}" onclick="choosePkg('${p.id}')"><div style="font-size:26px">${p.emoji}</div><div class="pkgname">${p.name}</div><div class="pkgsub">${p.subtitle}</div><div class="desc">${p.description}</div>${p.includes.map(x=>`<div class="inc">✓ ${x}</div>`).join('')}<div class="pills">${p.options.map(o=>`<button class="pill ${pkg===p.id&&duration===o[0]?'selected':''}" onclick="event.stopPropagation();chooseDur('${p.id}','${o[0]}')">${o[0]} · $${o[1]}</button>`).join('')}</div>${['battle-bash-pod','battle-bash-maze'].includes(p.id)&&pkg===p.id?`<div class="pills"><button class="pill ${battle==='Nerf'?'selected':''}" onclick="event.stopPropagation();battle='Nerf';renderPkgs();check1()">🎯 Nerf</button><button class="pill ${battle==='Laser Tag'?'selected':''}" onclick="event.stopPropagation();battle='Laser Tag';renderPkgs();check1()">⚡ Laser Tag</button></div>`:''}</div>`).join('');check1()}
+function choosePkg(id){pkg=id;duration=null;battle=null;date=null;time=null;renderPkgs()} function chooseDur(id,d){pkg=id;duration=d;renderPkgs()} function check1(){next1.disabled=!(pkg&&duration&&(!['battle-bash-pod','battle-bash-maze'].includes(pkg)||battle))}
 function dk(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function unavailable(key){return unavailableDates.includes(key)}
 async function sync(){
@@ -1981,7 +1981,7 @@ function showStep(n) {
 function goToStep(n) {
   if(n===1&&!agreed){ alert("Please check the box to agree to the Rental Agreement before continuing."); return; }
   if(n===2&&(!selectedPkg||!selectedDuration)){ alert("Please select a package and duration before continuing."); return; }
-  if(n===2&&selectedPkg==="battle-bash-pod"&&!selectedNerfType){ alert("Please choose Nerf or Laser Tag before continuing."); return; }
+  if(n===2&&["battle-bash-pod","battle-bash-maze"].includes(selectedPkg)&&!selectedNerfType){ alert("Please choose Nerf or Laser Tag before continuing."); return; }
   if(n===3&&(!selectedDate||!selectedTime)){ alert("Please select a date and start time before continuing."); return; }
   if(n===4&&!infoValid()){
     const missing=getMissingFields().map(id=>FIELD_LABELS[id]);
@@ -2001,7 +2001,7 @@ function buildPackageGrid(){
   const grid=document.getElementById("package-grid");grid.innerHTML="";
   PACKAGES.forEach(p=>{
     const card=document.createElement("div");card.className="package-card";card.id="card-"+p.id;card.onclick=()=>selectPackage(p.id);
-    const nerfSection=p.id==="battle-bash-pod"?`<div id="nerf-type-section" style="margin-top:14px;display:none;"><div class="includes-label" style="margin-bottom:8px;">Choose Your Battle Style</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="duration-btn" id="nerf-btn-Nerf" onclick="selectNerfType(event,'Nerf')">🎯 Nerf<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Foam Dart Guns & Ammo</span></button><button class="duration-btn" id="nerf-btn-NerfLaserPro" onclick="selectNerfType(event,'Laser Tag')">⚡ Laser Tag<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Laser Tag Guns</span></button></div></div>`:"";
+    const nerfSection=["battle-bash-pod","battle-bash-maze"].includes(p.id)?`<div id="nerf-type-section" style="margin-top:14px;display:none;"><div class="includes-label" style="margin-bottom:8px;">Choose Your Battle Style</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="duration-btn" id="nerf-btn-Nerf" onclick="selectNerfType(event,'Nerf')">🎯 Nerf<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Foam Dart Guns & Ammo</span></button><button class="duration-btn" id="nerf-btn-NerfLaserPro" onclick="selectNerfType(event,'Laser Tag')">⚡ Laser Tag<br/><span style="font-size:11px;font-weight:500;opacity:0.7;">Laser Tag Guns</span></button></div></div>`:"";
     card.innerHTML=`<span class="package-emoji">${p.emoji}</span><div class="package-name">${p.name}</div><div class="package-sub">${p.subtitle}</div><div class="package-desc">${p.description}</div><div class="includes-label">What's Included</div>${p.includes.map(inc=>`<div class="include-item"><span style="color:${p.color};font-size:10px;">●</span> ${inc}</div>`).join("")}<div class="duration-grid" id="dur-${p.id}">${p.options.filter(opt=>!opt.internalOnly).map(opt=>`<button class="duration-btn" id="dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}" onclick="selectDuration(event,'${p.id}','${opt.label}',${opt.price},'${p.color}')">${opt.label}<br/><span style="font-size:13px;font-weight:800;">$${opt.price}</span></button>`).join("")}</div>${nerfSection}`;
     grid.appendChild(card);
     const customerOptions=p.options.filter(opt=>!opt.internalOnly);
@@ -2010,7 +2010,7 @@ function buildPackageGrid(){
 }
 
 function selectPackage(pkgId){
-  selectedPkg=pkgId;if(pkgId!=="battle-bash-pod")selectedNerfType=null;
+  selectedPkg=pkgId;if(!["battle-bash-pod","battle-bash-maze"].includes(pkgId))selectedNerfType=null;
   PACKAGES.forEach(p=>{const card=document.getElementById("card-"+p.id),pkg=PACKAGES.find(x=>x.id===p.id);if(p.id===pkgId){card.style.border=`2px solid ${pkg.color}`;card.style.background=`linear-gradient(135deg,rgba(${hexToRgb(pkg.color)},0.15),rgba(${hexToRgb(pkg.color)},0.05))`;}else{card.style.border="2px solid rgba(255,255,255,0.08)";card.style.background="rgba(255,255,255,0.03)";}});
   if(selectedDuration&&!STRIPE_LINKS[`${pkgId}|${selectedDuration}`]){selectedDuration=null;updatePkgNextBtn();}
   updateDatetimeSub();
@@ -2021,7 +2021,7 @@ function selectDuration(e,pkgId,label,price,color){
   PACKAGES.forEach(p=>p.options.forEach(opt=>{const btn=document.getElementById(`dur-btn-${p.id}-${opt.label.replace(/\s/g,'')}`);if(btn){btn.style.borderColor="rgba(255,255,255,0.15)";btn.style.background="transparent";btn.style.color="rgba(255,255,255,0.45)";}}));
   const active=document.getElementById(`dur-btn-${pkgId}-${label.replace(/\s/g,'')}`);
   if(active){active.style.borderColor=color;active.style.background=`rgba(${hexToRgb(color)},0.2)`;active.style.color="#fff";}
-  const ns=document.getElementById("nerf-type-section");if(ns)ns.style.display=pkgId==="battle-bash-pod"?"block":"none";
+  const ns=document.getElementById("nerf-type-section");if(ns)ns.style.display=["battle-bash-pod","battle-bash-maze"].includes(pkgId)?"block":"none";
   updatePkgNextBtn();updateDatetimeSub();
 }
 
@@ -2033,7 +2033,7 @@ function selectNerfType(e,type){
   updatePkgNextBtn();
 }
 
-function updatePkgNextBtn(){const nerfOk=selectedPkg!=="battle-bash-pod"||selectedNerfType!==null;document.getElementById("btn-pkg-next").className="btn "+(selectedPkg&&selectedDuration&&nerfOk?"btn-primary":"btn-disabled");}
+function updatePkgNextBtn(){const nerfOk=!["battle-bash-pod","battle-bash-maze"].includes(selectedPkg)||selectedNerfType!==null;document.getElementById("btn-pkg-next").className="btn "+(selectedPkg&&selectedDuration&&nerfOk?"btn-primary":"btn-disabled");}
 
 function updateDatetimeSub(){const sub=document.getElementById("datetime-sub");if(!sub)return;sub.textContent=selectedDuration==="All Night"?"Red crossed-out dates are unavailable. All-Nighter rentals begin at 9:30 PM.":`Red crossed-out dates are unavailable. Your ${selectedDuration} rental must end by 9:30 PM — only valid start times are shown.`;}
 
@@ -2094,7 +2094,7 @@ function buildSummary(){
   const pkg=PACKAGES.find(p=>p.id===selectedPkg),dur=pkg.options.find(o=>o.label===selectedDuration);
   document.getElementById("sum-pkg").textContent=pkg.name;
   const nerfRow=document.getElementById("sum-nerf-row");
-  if(selectedPkg==="battle-bash-pod"&&selectedNerfType){document.getElementById("sum-nerf").textContent=selectedNerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
+  if(["battle-bash-pod","battle-bash-maze"].includes(selectedPkg)&&selectedNerfType){document.getElementById("sum-nerf").textContent=selectedNerfType;nerfRow.style.display="flex";}else{nerfRow.style.display="none";}
   document.getElementById("sum-dur").textContent=selectedDuration;document.getElementById("sum-date").textContent=formatDate(selectedDate);document.getElementById("sum-time").textContent=selectedTime;
   const endRow=document.getElementById("sum-end-row");
   if(selectedDuration!=="All Night"){document.getElementById("sum-end").textContent=getEndTime(selectedTime,selectedDuration);endRow.classList.remove("hidden");}else{endRow.classList.add("hidden");}
@@ -2158,7 +2158,7 @@ function applyCoupon(){
 
 function handlePayment(){
   const key=toDateKey(selectedDate),ref="VIP-"+Math.random().toString(36).toUpperCase().slice(2,8);
-  const nerfLabel=selectedPkg==="battle-bash-pod"&&selectedNerfType?` — ${selectedNerfType}`:"";
+  const nerfLabel=["battle-bash-pod","battle-bash-maze"].includes(selectedPkg)&&selectedNerfType?` — ${selectedNerfType}`:"";
   const pkg2=PACKAGES.find(p=>p.id===selectedPkg);
   const fullPrice=pkg2.options.find(o=>o.label===selectedDuration).price;
   // Use discounted price if a coupon was applied, otherwise use full price
@@ -2255,7 +2255,7 @@ function updateMBDuration(){
   pkg.options.forEach(opt=>{const o=document.createElement("option");o.value=opt.label;o.textContent=opt.internalOnly?`${opt.label} — $${opt.price} (Vendor/Internal Event)`:`${opt.label} — $${opt.price}`;durSel.appendChild(o);});
   // Show/hide nerf section
   const nerfSection=document.getElementById("mb-nerf-section");
-  nerfSection.classList.toggle("hidden",pkgId!=="battle-bash-pod");
+  nerfSection.classList.toggle("hidden",!["battle-bash-pod","battle-bash-maze"].includes(pkgId));
   mbNerfType=null;
   ["Nerf","LaserTag"].forEach(id=>{const btn=document.getElementById("mb-nerf-"+id);if(btn){btn.classList.remove("active");}});
   // Reset vendor custom price section since duration changed
@@ -2335,7 +2335,7 @@ async function addManualBooking(){
     if(!orgName||!date||(!mbHistorical&&!time)){errEl.textContent="Please fill in: organization name, date, and time.";errEl.classList.remove("hidden");return;}
   }else{
     if(!firstName||!lastName||!phone||!pkgId||!duration||!date||(!mbHistorical&&!time)){errEl.textContent="Please fill in: name, phone, package, duration, date, and time.";errEl.classList.remove("hidden");return;}
-    if(pkgId==="battle-bash-pod"&&!mbNerfType){errEl.textContent="Please select a Battle Style (Nerf or Laser Tag).";errEl.classList.remove("hidden");return;}
+    if(["battle-bash-pod","battle-bash-maze"].includes(pkgId)&&!mbNerfType){errEl.textContent="Please select a Battle Style (Nerf or Laser Tag).";errEl.classList.remove("hidden");return;}
   }
 
   // Refresh before the advisory availability check. Supabase still makes the final
@@ -2358,7 +2358,7 @@ async function addManualBooking(){
   const finalPkgId=pkgId||"vip-party-pod";
   const newManualBooking={
     dateKey:date,startTime:time||(mbHistorical?"Unknown / Not Recorded":"TBD"),duration:duration||"Custom",
-    nerfType:pkgId==="battle-bash-pod"?mbNerfType:null,
+    nerfType:["battle-bash-pod","battle-bash-maze"].includes(pkgId)?mbNerfType:null,
     name:isEvent?(orgName+(firstName?" — "+firstName+" "+lastName:"")):`${firstName} ${lastName}`,
     email,phone,address,ref,price:finalPrice,pkgName:pkg?.name||"Custom Event",pkgId:finalPkgId,
     paymentStatus:payment,amountPaid:parseFloat(amountPaid)||0,
